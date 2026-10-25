@@ -10,8 +10,8 @@
     "test-scripts": "gulp scripts && npm run vitest-nocoverage",
     "vitest": "vitest --run",
     "vitest-nocoverage": "vitest --run --coverage false",
-    "eslint": "eslint --ext ts ./src/scripts ./src/modules",
-    "eslint-fix": "eslint --ext ts --fix ./src/scripts ./src/modules",
+    "eslint": "eslint --ext ts ./src/scripts ./src/modules && eslint --ext ts,js ./src/runtime ./src/contracts",
+    "eslint-fix": "eslint --ext ts --fix ./src/scripts ./src/modules && eslint --ext ts,js --fix ./src/runtime ./src/contracts",
     "stylelint": "stylelint \"./src/**/*.less\" --cache",
     "stylelint-fix": "npm run stylelint -- --fix",
     "website": "npm run tl:update && npm test && cross-env NODE_ENV=production gulp website",
@@ -22,7 +22,11 @@
     "validate:config": "node tools/configuration.cjs",
     "test:config": "node --test tests/configuration/*.test.cjs",
     "test:baseline": "vitest run --config vitest.baseline.config.js",
-    "test:refactor": "npm run validate:config && npm run test:config && npm run test:baseline"
+    "test:refactor": "npm run check:config-generated && npm run typecheck:refactor && npm run validate:config && npm run test:config && npm run test:runtime && npm run test:baseline",
+    "generate:config": "node tools/generate-configuration.cjs",
+    "check:config-generated": "node tools/generate-configuration.cjs --check",
+    "typecheck:refactor": "tsc -p tsconfig.contracts.json && tsc -p tsconfig.runtime.json",
+    "test:runtime": "vitest run --config vitest.runtime.config.js"
   },
   "repository": {
     "type": "git",
@@ -88,6 +92,7 @@
     "gulp-typescript": "^5.0.1",
     "husky": "^4.3.8",
     "jsdom": "^25.0.0",
+    "json-schema-to-typescript": "^15.0.4",
     "npm-run-all2": "^6.2.0",
     "postcss-less": "^6.0.0",
     "stylelint": "^15.10.1",

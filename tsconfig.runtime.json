@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.contracts.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "lib": ["ES2020", "DOM"],
+    "resolveJsonModule": true,
+    "esModuleInterop": true
+  },
+  "include": ["src/contracts/configuration.js", "src/contracts/**/*.ts", "src/runtime/**/*.ts"]
+}

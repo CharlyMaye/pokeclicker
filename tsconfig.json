@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "es6",
-    "lib": ["es2017", "dom", "es2019"],
+    "lib": [
+      "es2017",
+      "dom",
+      "es2019"
+    ],
     "skipLibCheck": true,
     "outFile": "script.min.js",
     "sourceMap": true
@@ -13,6 +17,9 @@
     "src/libs",
     "src/specs",
     "src/modules",
-    "other"
+    "other",
+    "src/contracts",
+    "src/runtime",
+    "tests"
   ]
 }

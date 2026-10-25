@@ -1,0 +1,13 @@
+{
+  "version": "6c8ea7cdfb1c668570b498894d60728616d6dc0ff46cab5300bfc29db41e6e49",
+  "files": {
+    "combat": {
+      "path": "configuration/6c8ea7cdfb1c668570b498894d60728616d6dc0ff46cab5300bfc29db41e6e49/combat.json",
+      "sha256": "58b0dcf173f18343b9f673a6829804dc7af9600df2d71b4bbfdf98dd25d179fe"
+    },
+    "simulation": {
+      "path": "configuration/6c8ea7cdfb1c668570b498894d60728616d6dc0ff46cab5300bfc29db41e6e49/simulation.json",
+      "sha256": "1c6004c78829a52890383936f144d6644974631ce8cea06a331f07522243f75c"
+    }
+  }
+}

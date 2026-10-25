@@ -20,6 +20,8 @@ const fs = require('fs');
 const path = require('path');
 const { Transform } = require('node:stream');
 const { loadConfiguration } = require('./tools/configuration.cjs');
+const { generateConfiguration } = require('./tools/generate-configuration.cjs');
+const { publishConfiguration } = require('./tools/publish-configuration.cjs');
 const version = process.env.npm_package_version || '0.0.0';
 
 const webpackConfig = require('./webpack.config');
@@ -177,10 +179,12 @@ gulp.task('assets', () => gulp.src(srcs.assets)
     .pipe(gulp.dest(dests.assets))
     .pipe(browserSync.reload({stream: true})));
 
-gulp.task('public', () => {
+gulp.task('public', async () => {
+    await generateConfiguration(true);
     loadConfiguration(path.resolve('public'));
-    return gulp.src(srcs.public, { base: 'public' })
-        .pipe(gulp.dest(dests.base));
+    publishConfiguration(dests.base);
+    await streamToPromise(gulp.src(srcs.public, { base: 'public' })
+        .pipe(gulp.dest(dests.base)));
 });
 
 gulp.task('locales', () => gulp.src(srcs.locales)
