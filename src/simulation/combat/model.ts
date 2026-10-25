@@ -12,10 +12,16 @@ export interface OpponentDefinition {
     readonly captureDurationMs: number;
 }
 
-/** Resolved inputs for one route, not the legacy save or full Pokemon catalog format. */
-export interface CombatScenario {
+export interface CombatRoute {
     readonly location: RouteReference;
     readonly opponents: readonly OpponentDefinition[];
+    readonly unlocked: boolean;
+}
+
+/** Resolved session inputs, not the legacy save or full Pokemon catalog format. */
+export interface CombatScenario {
+    readonly initialLocation: RouteReference;
+    readonly routes: readonly CombatRoute[];
     readonly clickAttackDamage: number;
     readonly clickAttacksAllowed: boolean;
     readonly initialPokeballs: number;
@@ -24,8 +30,14 @@ export interface CombatScenario {
 export type RandomStep = (state: number) => Readonly<{ state: number; value: number }>;
 export type Entity = number;
 export interface Health { current: number; maximum: number }
-export interface Encounter { definition: OpponentDefinition }
+export interface Encounter { definition: OpponentDefinition; location: RouteReference }
 export interface Capture { resolvesAtMs: number }
+
+export interface RouteProgress {
+    location: RouteReference;
+    defeats: number;
+    captures: number;
+}
 
 export interface Progress {
     money: number;
@@ -34,6 +46,7 @@ export interface Progress {
     defeats: number;
     clickAttacks: number;
     captured: Map<number, number>;
+    routes: Map<string, RouteProgress>;
 }
 
 export interface CombatWorld {
@@ -42,6 +55,7 @@ export interface CombatWorld {
     captures: Map<Entity, Capture>;
     configuration: Configuration;
     scenario: CombatScenario;
+    selectedRoute: CombatRoute;
     sessionId: string;
     atMs: number;
     steps: number;

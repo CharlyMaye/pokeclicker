@@ -1,15 +1,27 @@
 {
-  "location": { "region": 0, "route": 1 },
-  "opponents": [
+  "initialLocation": {
+    "region": 0,
+    "route": 1
+  },
+  "routes": [
     {
-      "pokemonId": 16,
-      "health": 30,
-      "autoAttackDamage": 10,
-      "moneyReward": 10,
-      "experienceReward": 12,
-      "dungeonTokenReward": 2,
-      "captureProbability": 0.5,
-      "captureDurationMs": 200
+      "location": {
+        "region": 0,
+        "route": 1
+      },
+      "unlocked": true,
+      "opponents": [
+        {
+          "pokemonId": 16,
+          "health": 30,
+          "autoAttackDamage": 10,
+          "moneyReward": 10,
+          "experienceReward": 12,
+          "dungeonTokenReward": 2,
+          "captureProbability": 0.5,
+          "captureDurationMs": 200
+        }
+      ]
     }
   ],
   "clickAttackDamage": 10,

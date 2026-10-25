@@ -1,4 +1,6 @@
-import { CombatScenario, OpponentDefinition, RandomStep, SimulationInputError } from './model';
+import type { RouteReference } from '../../contracts/combat-protocol';
+import { CombatRoute, CombatScenario, OpponentDefinition, RandomStep, SimulationInputError } from './model';
+import { findRoute, routeKey } from './routes';
 
 // Algorithm representation limit, not a gameplay setting.
 export const MAX_RANDOM_STATE = 2 ** 32 - 1;
@@ -50,19 +52,43 @@ function opponent(value: unknown): OpponentDefinition {
     });
 }
 
-export function validateScenario(value: unknown): CombatScenario {
-    const data = object(value, ['location', 'opponents', 'clickAttackDamage', 'clickAttacksAllowed', 'initialPokeballs'], 'scenario');
-    const location = object(data.location, ['region', 'route'], 'location');
-    if (!Array.isArray(data.opponents) || data.opponents.length === 0 || typeof data.clickAttacksAllowed !== 'boolean') {
-        throw new SimulationInputError('invalid-input', 'Expected a nonempty opponent list and boolean clickAttacksAllowed');
+function location(value: unknown): RouteReference {
+    const data = object(value, ['region', 'route'], 'location');
+    return Object.freeze({ region: safeInteger(data.region, 'region'), route: safeInteger(data.route, 'route', 1) });
+}
+
+function route(value: unknown): CombatRoute {
+    const data = object(value, ['location', 'opponents', 'unlocked'], 'route');
+    if (!Array.isArray(data.opponents) || data.opponents.length === 0 || typeof data.unlocked !== 'boolean') {
+        throw new SimulationInputError('invalid-input', 'Expected a nonempty opponent list and boolean unlocked');
     }
     const opponents = Array.from(data.opponents, opponent);
     if (new Set(opponents.map(entry => entry.pokemonId)).size !== opponents.length) {
-        throw new SimulationInputError('invalid-input', 'Opponent catalog IDs must be unique');
+        throw new SimulationInputError('invalid-input', 'Opponent catalog IDs must be unique within a route');
     }
     return Object.freeze({
-        location: Object.freeze({ region: safeInteger(location.region, 'region'), route: safeInteger(location.route, 'route', 1) }),
+        location: location(data.location),
         opponents: Object.freeze(opponents),
+        unlocked: data.unlocked,
+    });
+}
+
+export function validateScenario(value: unknown): CombatScenario {
+    const data = object(value, ['initialLocation', 'routes', 'clickAttackDamage', 'clickAttacksAllowed', 'initialPokeballs'], 'scenario');
+    if (!Array.isArray(data.routes) || data.routes.length === 0 || typeof data.clickAttacksAllowed !== 'boolean') {
+        throw new SimulationInputError('invalid-input', 'Expected a nonempty route list and boolean clickAttacksAllowed');
+    }
+    const routes = Array.from(data.routes, route);
+    if (new Set(routes.map(entry => routeKey(entry.location))).size !== routes.length) {
+        throw new SimulationInputError('invalid-input', 'Route locations must be unique');
+    }
+    const initialLocation = location(data.initialLocation);
+    if (!findRoute(routes, initialLocation)?.unlocked) {
+        throw new SimulationInputError('invalid-input', 'Initial location must resolve to an unlocked route');
+    }
+    return Object.freeze({
+        initialLocation,
+        routes: Object.freeze(routes),
         clickAttackDamage: safeInteger(data.clickAttackDamage, 'clickAttackDamage'),
         clickAttacksAllowed: data.clickAttacksAllowed,
         initialPokeballs: safeInteger(data.initialPokeballs, 'initialPokeballs'),

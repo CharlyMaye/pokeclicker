@@ -6,6 +6,7 @@ import { validateConfiguration } from '../../contracts/configuration';
 import type { Configuration } from '../../contracts/configuration-types';
 import { CombatWorld, CommandOutcome, RandomStep, SimulationFault, SimulationInputError, StepOutput } from './model';
 import { spawnEnemy, stepCombat } from './systems';
+import { findRoute } from './routes';
 import { safeInteger, validateRandomState, validateScenario, xorshift32 } from './validation';
 
 export interface AdvanceResult {
@@ -22,7 +23,11 @@ function copyWorld(world: CombatWorld): CombatWorld {
         encounters: new Map([...world.encounters].map(([id, value]) => [id, { ...value }])),
         captures: new Map([...world.captures].map(([id, value]) => [id, { ...value }])),
         commands: [...world.commands],
-        progress: { ...world.progress, captured: new Map(world.progress.captured) },
+        progress: {
+            ...world.progress,
+            captured: new Map(world.progress.captured),
+            routes: new Map([...world.progress.routes].map(([key, value]) => [key, { ...value }])),
+        },
     };
 }
 
@@ -43,7 +48,7 @@ function project(world: CombatWorld): CombatSnapshot {
         sequence: world.steps,
         atMs: world.atMs,
         type: 'CombatSnapshot',
-        location: world.scenario.location,
+        location: world.selectedRoute.location,
         encounter: capture ? { phase: 'capturing', enemy, resolvesAtMs: capture.resolvesAtMs } : { phase: 'fighting', enemy },
     });
 }
@@ -66,13 +71,18 @@ export class RouteCombatSimulation {
             throw new SimulationInputError('invalid-input', 'Expected a pure random step function');
         }
         const definition = validateScenario(scenario);
+        const selectedRoute = findRoute(definition.routes, definition.initialLocation);
+        if (!selectedRoute) {
+            throw new SimulationInputError('invalid-input', 'Missing initial route');
+        }
         this.world = {
             health: new Map(), encounters: new Map(), captures: new Map(),
             configuration: validateConfiguration(configuration), scenario: definition,
+            selectedRoute,
             sessionId: validateSessionId(sessionId), randomState: validateRandomState(seed),
             atMs: 0, steps: 0, nextEntity: 1, eventSequence: 0, autoElapsedMs: 0, lastClickAtMs: 0,
             pokeballs: definition.initialPokeballs, commands: [],
-            progress: { money: 0, experience: 0, dungeonTokens: 0, defeats: 0, clickAttacks: 0, captured: new Map() },
+            progress: { money: 0, experience: 0, dungeonTokens: 0, defeats: 0, clickAttacks: 0, captured: new Map(), routes: new Map() },
         };
         this.receiver = new CombatCommandReceiver(sessionId);
         spawnEnemy(this.world, random);
@@ -90,6 +100,9 @@ export class RouteCombatSimulation {
             defeats: progress.defeats, clickAttacks: progress.clickAttacks, pokeballs: this.world.pokeballs,
             captured: Object.freeze([...progress.captured].sort(([a], [b]) => a - b)
                 .map(([pokemonId, count]) => Object.freeze({ pokemonId, count }))),
+            routes: Object.freeze([...progress.routes.values()]
+                .sort((a, b) => a.location.region - b.location.region || a.location.route - b.location.route)
+                .map(value => Object.freeze({ ...value, location: Object.freeze({ ...value.location }) }))),
         });
     }
 
