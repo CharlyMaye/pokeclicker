@@ -1,7 +1,7 @@
 const { readFileSync, statSync, readdirSync } = require('node:fs');
 const path = require('node:path');
 const { validateConfiguration, MAX_CONFIG_BYTES } = require('../src/contracts/configuration');
-const { parseRouteHealthPolicy } = require('./route-content.cjs');
+const { parseRouteHealthPolicy, parseEncounterRulesPolicy } = require('./route-content.cjs');
 const names = ['combat', 'simulation'];
 const { parseLabConfiguration } = require('./lab-configuration.cjs');
 
@@ -18,11 +18,12 @@ function readJson(file) {
 
 function loadConfiguration(publicRoot) {
     const directory = path.join(publicRoot, 'config');
-    const expected = [...names, 'lab', 'route-health'].map(name => `${name}.json`).sort();
+    const expected = [...names, 'lab', 'route-health', 'encounter-rules'].map(name => `${name}.json`).sort();
     const actual = readdirSync(directory).sort();
     if (JSON.stringify(actual) !== JSON.stringify(expected)) {
         throw new Error(`${directory}: expected exactly ${expected.join(', ')}; found ${actual.join(', ')}`);
     }
+    parseEncounterRulesPolicy(readJson(path.join(directory, 'encounter-rules.json')));
     parseRouteHealthPolicy(readJson(path.join(directory, 'route-health.json')));
     parseLabConfiguration(readJson(path.join(directory, 'lab.json')));
     return validateConfiguration(Object.fromEntries(names.map(name => [

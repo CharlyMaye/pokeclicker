@@ -41,8 +41,11 @@ export const validateSimulation: Validator<SimulationConfiguration>;
     const healthBytes = readFileSync(path.join(projectRoot, 'public/config/route-health.json'));
     require('./route-content.cjs').parseRouteHealthPolicy(JSON.parse(healthBytes.toString('utf8')));
     hashes['route-health'] = digest(healthBytes);
+    const encounterBytes = readFileSync(path.join(projectRoot, 'public/config/encounter-rules.json'));
+    require('./route-content.cjs').parseEncounterRulesPolicy(JSON.parse(encounterBytes.toString('utf8')));
+    hashes['encounter-rules'] = digest(encounterBytes);
     const version = digest(JSON.stringify(hashes));
-    const release = { version, files: Object.fromEntries([...names, 'lab', 'route-health'].map(name => [name, {
+    const release = { version, files: Object.fromEntries([...names, 'lab', 'route-health', 'encounter-rules'].map(name => [name, {
         path: `configuration/${version}/${name}.json`, sha256: hashes[name],
     }])) };
     output.set('src/runtime/configuration/generated/release.json', `${JSON.stringify(release, null, 2)}\n`);
