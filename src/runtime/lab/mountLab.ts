@@ -1,3 +1,4 @@
+import { mountCheckpointFiles } from './mountCheckpointFiles';
 import type { Configuration } from '../../contracts/configuration-types';
 import { CombatSessionRenderer } from '../../client/renderers/CombatSessionRenderer';
 import { element } from '../../client/renderers/elements';
@@ -38,6 +39,7 @@ export function mountCombatLab(container: HTMLElement, base: URL, configuration:
     let confirmAction: (() => Promise<void>) | null = null;
     let confirmOrigin: HTMLElement | null = null;
     let controller: CombatLabController | undefined;
+    let files: ReturnType<typeof mountCheckpointFiles> | undefined;
     const cleanups: (() => void)[] = [];
     const controls = new Map<string, HTMLButtonElement>();
     function listen(target: EventTarget, name: string, callback: EventListener) {
@@ -131,7 +133,7 @@ export function mountCombatLab(container: HTMLElement, base: URL, configuration:
         if (disposed) {
             return;
         }
-        const busy = !controller || controller.busy;
+        const busy = !controller || controller.busy || !!files?.reading;
         const state = controller?.state ?? 'empty';
         const running = state === 'running';
         const usable = state === 'running' || state === 'stopped';
@@ -140,11 +142,12 @@ export function mountCombatLab(container: HTMLElement, base: URL, configuration:
             if (name === 'confirm' || name === 'cancel') {
                 control.disabled = busy; continue;
             }
-            control.disabled = busy || !!confirmAction || (['load', 'recover'].includes(name) ? false : !usable)
+            control.disabled = busy || !!confirmAction || !!files?.pending || (['load', 'recover'].includes(name) ? false : !usable)
                 || (['attack', 'pause'].includes(name) && !running) || (name === 'start' && running);
         }
-        renderer.disabled = busy || !!confirmAction || !usable;
-        route.disabled = busy || !!confirmAction || !running;
+        renderer.disabled = busy || !!confirmAction || !!files?.pending || !usable;
+        route.disabled = busy || !!confirmAction || !!files?.pending || !running;
+        files?.update(busy || !!confirmAction);
         if (controller) {
             renderer.value = controller.rendererKind;
             const location = controller.latest?.location;
@@ -170,6 +173,7 @@ export function mountCombatLab(container: HTMLElement, base: URL, configuration:
                 maxCaptured: new Set(lab.scenario.routes.flatMap(route => route.opponents.map(opponent => opponent.pokemonId))).size, maxRoutes: lab.scenario.routes.length,
             }),
         });
+        files = mountCheckpointFiles(root, controller, lab, { changed: update, execute });
         controller.setVisible(!document.hidden);
         const ready = controller.initialize();
         void ready.catch(report);
@@ -199,6 +203,6 @@ export function mountCombatLab(container: HTMLElement, base: URL, configuration:
         if (disposed) {
             return;
         }
-        disposed = true; controller?.dispose(); cleanups.forEach(cleanup => cleanup()); root.remove();
+        disposed = true; files?.dispose(); controller?.dispose(); cleanups.forEach(cleanup => cleanup()); root.remove();
     }
 }

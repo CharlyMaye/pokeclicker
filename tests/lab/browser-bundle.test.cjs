@@ -20,8 +20,10 @@ function browser(t, { corruptConfig = false, initialSave } = {}) {
     const dom = new JSDOM(readFileSync(path.join(root, 'public/ecs/index.html'), 'utf8'), {
         url: 'https://example.test/pokeclicker/ecs/', runScripts: 'outside-only', pretendToBeVisual: true,
     });
-    const { window } = dom; const workers = [], requests = [], frames = new Map(); let frameId = 0;
+    const { window } = dom; const workers = [], requests = [], downloads = [], revoked = [], frames = new Map(); let frameId = 0;
     Object.defineProperty(window.crypto, 'subtle', { value: webcrypto.subtle });
+    window.URL.createObjectURL = blob => { downloads.push(blob); return `blob:checkpoint-${downloads.length}`; };
+    window.URL.revokeObjectURL = url => revoked.push(url);
     window.TextEncoder = TextEncoder; window.TextDecoder = TextDecoder;
     Object.defineProperty(window.navigator, 'locks', { value: { request: async (_name, _options, operation) => operation() } });
     window.requestAnimationFrame = callback => { frames.set(++frameId, callback); return frameId; };
@@ -56,7 +58,7 @@ function browser(t, { corruptConfig = false, initialSave } = {}) {
     const button = name => window.document.querySelector(`[data-action="${name}"]`);
     const click = async name => { await until(() => button(name) && !button(name).disabled); button(name).click(); await until(() => !button('load').disabled || !window.document.querySelector('fieldset').hidden); };
     const frame = () => { const callbacks = [...frames.values()]; frames.clear(); callbacks.forEach(callback => callback(0)); };
-    return { window, workers, requests, button, click, frame };
+    return { window, workers, requests, button, click, frame, downloads, revoked };
 }
 
 test('emitted page plays, swaps views, saves, reloads and recovers under the Pages subpath', { timeout: 20000 }, async t => {
@@ -111,4 +113,67 @@ test('pinned configuration integrity failure creates no worker or storage writes
 test('corrupt existing save is retained and reported before worker creation', async t => {
     const x = browser(t, { initialSave: '{broken' }); await until(() => x.window.document.querySelector('[role="alert"]')?.textContent.includes(lab.text.failed));
     assert.equal(x.workers.length, 0); assert.equal(x.window.localStorage.getItem(key), '{broken'); assert.equal(x.button('start').disabled, true);
+});
+
+function readBlob(window, blob) {
+    return new Promise((resolve, reject) => { const reader = new window.FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsText(blob); });
+}
+function selectFile(window, content, filename = 'checkpoint.json') {
+    const input = window.document.querySelector('[data-control="checkpoint-file"]');
+    Object.defineProperty(input, 'files', { configurable: true, value: [new window.File([content], filename, { type: 'application/json' })] });
+    input.dispatchEvent(new window.Event('change')); return input;
+}
+test('portable checkpoint exports unsaved capture progress and imports into another session only after confirmation', { timeout: 20000 }, async t => {
+    const source = browser(t); await until(() => source.button('start') && !source.button('start').disabled); await source.click('start');
+    for (const time of [50, 100, 150]) { await source.workers[0].tick(time, false); await source.click('attack'); }
+    await source.workers[0].tick(300); await until(() => !source.button('export').disabled); await source.click('export');
+    assert.equal(source.window.localStorage.getItem(key), null); assert.equal(source.button('attack').disabled, true);
+    assert.equal(source.downloads.length, 1); assert.equal(source.button('download').download, lab.checkpointFilename);
+    const text = await readBlob(source.window, source.downloads[0]), checkpoint = JSON.parse(text);
+    assert.equal(checkpoint.combat.snapshot.encounter.phase, 'capturing'); assert.equal(checkpoint.combat.progress.money, 10);
+    const target = browser(t); await until(() => target.button('save') && !target.button('save').disabled); await target.click('save');
+    const original = target.window.localStorage.getItem(key); await target.click('start');
+    const filename = '<img src=x onerror=alert(1)>.json'; selectFile(target.window, text, filename);
+    await until(() => !target.button('import-confirm').disabled);
+    assert.equal(target.workers.length, 1); assert.equal(target.window.localStorage.getItem(key), original);
+    const preview = target.window.document.querySelector('[data-checkpoint-preview]');
+    assert.match(preview.textContent, /Capturing/); assert.equal(target.window.document.querySelector('.ecs-checkpoint-files img'), null);
+    assert.ok(target.window.document.querySelector('.ecs-checkpoint-files').textContent.includes(filename));
+    target.button('import-cancel').click(); await until(() => !target.button('load').disabled); assert.equal(preview.children.length, 0);
+    assert.equal(target.workers.length, 1); assert.equal(target.window.localStorage.getItem(key), original);
+    selectFile(target.window, text); await until(() => !target.button('import-confirm').disabled); target.button('import-confirm').click();
+    await until(() => target.workers.length === 2 && !target.button('load').disabled); target.frame();
+    const record = JSON.parse(target.window.localStorage.getItem(key)); assert.deepEqual(record.checkpoint, checkpoint);
+    assert.equal(target.window.localStorage.getItem(key.replace(':current', ':previous')), original);
+    assert.equal(target.window.localStorage.getItem(key.replace(':current', ':import-original')), text);
+    assert.equal(target.workers[0].closed, true); assert.equal(target.button('attack').disabled, true);
+    assert.equal(target.window.document.querySelector('[data-progress-field="money"]').textContent, '10');
+    assert.equal(target.window.localStorage.getItem('player'), 'legacy-sentinel');
+    await target.click('recover'); target.button('confirm').click(); await until(() => target.workers.length === 3 && !target.button('start').disabled);
+    assert.deepEqual(JSON.parse(target.window.localStorage.getItem(key)).checkpoint, JSON.parse(original).checkpoint);
+    await source.click('export'); assert.deepEqual(source.revoked, ['blob:checkpoint-1']);
+    source.window.dispatchEvent(new source.window.PageTransitionEvent('pagehide'));
+    assert.deepEqual(source.revoked, ['blob:checkpoint-1', 'blob:checkpoint-2']);
+});
+
+test('file preview rejects empty, oversized, malformed, invalid UTF-8 and incompatible files without replacing progress', { timeout: 20000 }, async t => {
+    const x = browser(t); await until(() => x.button('save') && !x.button('save').disabled); await x.click('save'); const original = x.window.localStorage.getItem(key);
+    const incompatible = JSON.parse(original).checkpoint; incompatible.combat.scenario.clickAttackDamage++;
+    for (const value of ['', ' '.repeat(lab.maxCheckpointBytes + 1), '{broken', new Uint8Array([0xc3, 0x28]), JSON.stringify(incompatible)]) {
+        selectFile(x.window, value); await until(() => !x.window.document.querySelector('[data-control="checkpoint-file"]').disabled);
+        assert.ok(x.window.document.querySelector('[role="alert"]').textContent.includes(lab.text.failed));
+        assert.equal(x.window.document.querySelector('[data-checkpoint-preview]').children.length, 0);
+        assert.equal(x.workers.length, 1); assert.equal(x.window.localStorage.getItem(key), original);
+    }
+});
+
+test('a changed saved revision rejects confirmation and disposes only the prepared import worker', { timeout: 20000 }, async t => {
+    const x = browser(t); await until(() => x.button('save') && !x.button('save').disabled); await x.click('save');
+    const record = JSON.parse(x.window.localStorage.getItem(key)), text = JSON.stringify(record.checkpoint);
+    selectFile(x.window, text); await until(() => !x.button('import-confirm').disabled);
+    record.revision = x.window.crypto.randomUUID(); const otherTab = JSON.stringify(record); x.window.localStorage.setItem(key, otherTab);
+    x.button('import-confirm').click(); await until(() => x.workers.length === 2 && x.workers[1].closed);
+    assert.equal(x.workers[0].closed, false); assert.equal(x.window.localStorage.getItem(key), otherTab);
+    assert.match(x.window.document.querySelector('[role="alert"]').textContent, /revision changed/);
+    x.button('import-cancel').click(); await until(() => !x.button('load').disabled);
 });

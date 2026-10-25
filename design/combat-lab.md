@@ -30,7 +30,7 @@ The controller does not apply historical rewards. Prototype progression is alrea
 
 ## Required JSON
 
-`public/config/lab.json` version 2 provides the scenario, seed, renderer choice, timeouts, save slot and byte limit, English text, combat/progress labels and theme colors/layout. Core combat and scheduling settings remain in their existing JSON files. The scenario deliberately uses test balance and numeric Pokemon/route identifiers; it is not a production content catalog.
+`public/config/lab.json` version 3 provides the scenario, seed, renderer choice, timeouts, save slot and byte limit, English text, combat/progress labels and theme colors/layout. Core combat and scheduling settings remain in their existing JSON files. The scenario deliberately uses test balance and numeric Pokemon/route identifiers; it is not a production content catalog.
 
 `parseLabConfiguration` is the canonical strict parser for this assembly document. Build tooling uses it through ts-node and runtime uses the same TypeScript implementation. It rejects missing/unknown fields, unsafe timers, invalid scenario references, blank labels, nonportable save slots, invalid colors and nonpositive layout values, then returns detached frozen data. Core combat/simulation schemas still generate their own validators and types; there is no second lab schema to drift.
 
@@ -45,3 +45,5 @@ These are browser API integration tests, not visual or cross-browser testing. Ma
 Remaining production work includes real content and party inputs, indirect progression compatibility, legacy-save migration, offline rules, other battle modes and production activation. No feature flag enables ECS inside the legacy loop yet.
 
 [Live progression](live-progression.md) documents the committed frame shared by both views, transport version 3 and compatibility with existing version-one checkpoints.
+
+[Portable checkpoints](portable-checkpoints.md) adds export-and-pause, a retained download link, bounded file reading, a read-only import preview and confirmed replacement. The previous saved slot is retained; unsaved progress is discarded only after explicit import confirmation.

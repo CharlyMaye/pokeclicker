@@ -86,9 +86,19 @@ export class CheckpointStore {
         return this.exclusive.run(this.prefix, () => this.commit(checkpoint, expectedRevision));
     }
 
+    /** Parse a portable document without reading or changing any storage key. */
+    previewImport(text: string): HostCheckpoint {
+        return this.checkpoint(JSON.parse(this.bounded(text)));
+    }
+
+    /** Export a supplied stopped-session checkpoint without replacing the saved slot. */
+    serializeCheckpoint(value: unknown): string {
+        return this.bounded(JSON.stringify(this.checkpoint(value)));
+    }
+
     /** Import validates first, retains the exact imported document, and never touches its source. */
     async importText(text: string, expectedRevision: string | null): Promise<StoredCheckpoint> {
-        const checkpoint = this.checkpoint(JSON.parse(this.bounded(text)));
+        const checkpoint = this.previewImport(text);
         if (expectedRevision !== null) {
             revision(expectedRevision);
         }
@@ -97,7 +107,7 @@ export class CheckpointStore {
 
     exportText(): string | null {
         const record = this.read();
-        return record ? this.bounded(JSON.stringify(record.checkpoint)) : null;
+        return record ? this.serializeCheckpoint(record.checkpoint) : null;
     }
 
     private commit(checkpoint: HostCheckpoint, expectedRevision: string | null, imported?: string): StoredCheckpoint {
