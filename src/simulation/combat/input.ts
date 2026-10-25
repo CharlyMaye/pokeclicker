@@ -1,3 +1,4 @@
+import type { RouteReference } from '../../contracts/combat-protocol';
 import { SimulationInputError } from './model';
 
 export function safeInteger(value: unknown, label: string, minimum = 0): number {
@@ -40,4 +41,9 @@ export function catalogId(value: unknown): number {
         throw new SimulationInputError('invalid-input', 'pokemonId must be a positive finite catalog ID');
     }
     return value;
+}
+
+export function validateLocation(value: unknown): RouteReference {
+    const data = dataObject(value, ['region', 'route'], 'location');
+    return Object.freeze({ region: safeInteger(data.region, 'region'), route: safeInteger(data.route, 'route', 1) });
 }

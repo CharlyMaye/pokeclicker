@@ -1,5 +1,6 @@
 import { COMBAT_PROTOCOL_VERSION, RouteReference } from '../../contracts/combat-protocol';
 import { CombatWorld, CommandOutcome, RandomStep, StepOutput } from './model';
+import { resolveSpawnDefinition, sampleSpawn } from './spawnRules';
 import { selectOpponent } from './encounters';
 import { findRoute, routeKey, sameRoute } from './routes';
 import { add, validateRandomState } from './validation';
@@ -18,11 +19,13 @@ export function spawnEnemy(world: CombatWorld, random: RandomStep): void {
     if (world.encounters.size !== 0) {
         throw new Error('Cannot spawn over an existing encounter');
     }
-    const definition = selectOpponent(world.selectedRoute, draw(world, random));
+    const template = selectOpponent(world.selectedRoute, draw(world, random));
+    const sample = world.scenario.formatVersion === 3 ? sampleSpawn(world.scenario.spawnRules, () => draw(world, random)) : undefined;
+    const definition = sample ? resolveSpawnDefinition(world.scenario, world.selectedRoute.location, template, sample) : template;
     const entity = world.nextEntity;
     world.nextEntity = add(entity, 1, 'next entity');
     world.health.set(entity, { current: definition.health, maximum: definition.health });
-    world.encounters.set(entity, { definition, location: world.selectedRoute.location });
+    world.encounters.set(entity, { definition, location: world.selectedRoute.location, ...(sample ? { sample } : {}) });
     world.autoElapsedMs = 0;
 }
 

@@ -3,10 +3,10 @@ import { validateConfiguration } from '../../contracts/configuration';
 import type { Configuration } from '../../contracts/configuration-types';
 import { CombatScenario, CombatWorld, SimulationInputError } from './model';
 import { dataArray, dataObject, safeInteger, validateLocation, validateRandomState, validateScenario, add } from './validation';
+import { resolveSpawnDefinition, SpawnSample, validateSpawnSample } from './spawnRules';
 import { findRoute, routeKey, sameRoute } from './routes';
 
-export interface CombatCheckpoint {
-    readonly formatVersion: 1;
+interface CheckpointState {
     readonly randomAlgorithm: 'xorshift32';
     readonly configuration: Configuration;
     readonly scenario: CombatScenario;
@@ -27,6 +27,11 @@ export interface CombatCheckpoint {
         routes: readonly Readonly<{ location: RouteReference; defeats: number; captures: number }>[];
     }>;
 }
+
+export type CombatCheckpoint = CheckpointState & (
+    { readonly formatVersion: 1; readonly spawnSample?: never }
+    | { readonly formatVersion: 2; readonly spawnSample: SpawnSample }
+);
 
 function requireValid(condition: boolean, detail: string): void {
     if (!condition) {
@@ -51,11 +56,14 @@ export function sameData(left: unknown, right: unknown): boolean {
 
 /** Validate a detached save before constructing or replacing any world. */
 export function parseCombatCheckpoint(value: unknown, expectedConfiguration?: Configuration, expectedScenario?: unknown): CombatCheckpoint {
+    const version = value && typeof value === 'object' ? Object.getOwnPropertyDescriptor(value, 'formatVersion') : undefined;
+    const sampled = version && 'value' in version && version.value === 2;
     const data = dataObject(value, [
+        ...(sampled ? ['spawnSample'] : []),
         'formatVersion', 'randomAlgorithm', 'configuration', 'scenario', 'snapshot', 'sourceLocation',
         'randomState', 'nextEntity', 'autoElapsedMs', 'lastClickAtMs', 'commandSequence', 'commandAtMs', 'eventSequence', 'pokeballs', 'commands', 'progress',
     ], 'checkpoint');
-    requireValid(data.formatVersion === 1 && data.randomAlgorithm === 'xorshift32', 'Unsupported checkpoint version or random algorithm');
+    requireValid((data.formatVersion === 1 || data.formatVersion === 2) && data.randomAlgorithm === 'xorshift32', 'Unsupported checkpoint version or random algorithm');
     const config = dataObject(data.configuration, ['combat', 'simulation'], 'configuration');
     const plainConfig = (value: unknown, label: string) => {
         requireValid(!!value && typeof value === 'object', `${label} must be plain data`);
@@ -63,6 +71,10 @@ export function parseCombatCheckpoint(value: unknown, expectedConfiguration?: Co
     };
     const configuration = validateConfiguration({ combat: plainConfig(config.combat, 'combat configuration'), simulation: plainConfig(config.simulation, 'simulation configuration') });
     const scenario = validateScenario(data.scenario);
+    requireValid((scenario.formatVersion === 3) === (data.formatVersion === 2), 'Checkpoint and scenario sampling versions disagree');
+    const sampling = scenario.formatVersion === 3
+        ? { formatVersion: 2 as const, spawnSample: validateSpawnSample(data.spawnSample, scenario.spawnRules.policy) }
+        : { formatVersion: 1 as const };
     requireValid(!expectedConfiguration || sameData(configuration, validateConfiguration(expectedConfiguration)), 'Checkpoint configuration is incompatible');
     requireValid(expectedScenario === undefined || sameData(scenario, validateScenario(expectedScenario)), 'Checkpoint scenario is incompatible');
     const snapshot = parseCombatSnapshot(data.snapshot);
@@ -74,7 +86,8 @@ export function parseCombatCheckpoint(value: unknown, expectedConfiguration?: Co
     const selected = findRoute(scenario.routes, snapshot.location);
     const sourceLocation = validateLocation(data.sourceLocation);
     const source = findRoute(scenario.routes, sourceLocation);
-    const definition = source?.opponents.find(opponent => opponent.pokemonId === encounter.enemy.pokemonId);
+    const template = source?.opponents.find(opponent => opponent.pokemonId === encounter.enemy.pokemonId);
+    const definition = template && sampling.spawnSample ? resolveSpawnDefinition(scenario, sourceLocation, template, sampling.spawnSample) : template;
     requireValid(!!selected?.unlocked && !!source?.unlocked && !!definition
         && sourceLocation.region === scenario.initialLocation.region && snapshot.location.region === scenario.initialLocation.region,
     'Checkpoint route or opponent is unavailable');
@@ -136,7 +149,7 @@ export function parseCombatCheckpoint(value: unknown, expectedConfiguration?: Co
     requireValid(pokeballs === scenario.initialPokeballs - attempts && captures <= attempts - pendingCapture
         && eventSequence === defeats + attempts - pendingCapture && clickAttacks <= commandSequence - commands.length,
     'Capture inventory, events or click totals are inconsistent');
-    return Object.freeze({ formatVersion: 1, randomAlgorithm: 'xorshift32', configuration, scenario, snapshot, sourceLocation,
+    return Object.freeze({ ...sampling, randomAlgorithm: 'xorshift32', configuration, scenario, snapshot, sourceLocation,
         randomState, nextEntity, autoElapsedMs, lastClickAtMs, commandSequence, commandAtMs, eventSequence, pokeballs, commands,
         progress: Object.freeze({ money, experience, dungeonTokens, defeats, clickAttacks, captured, routes }) });
 }
@@ -149,14 +162,15 @@ export function restoreCombatWorld(checkpoint: CombatCheckpoint, sessionId: stri
     }
     const { enemy } = snapshot.encounter;
     const selectedRoute = findRoute(scenario.routes, snapshot.location);
-    const definition = findRoute(scenario.routes, checkpoint.sourceLocation)?.opponents.find(opponent => opponent.pokemonId === enemy.pokemonId);
+    const template = findRoute(scenario.routes, checkpoint.sourceLocation)?.opponents.find(opponent => opponent.pokemonId === enemy.pokemonId);
+    const definition = template && checkpoint.formatVersion === 2 ? resolveSpawnDefinition(scenario, checkpoint.sourceLocation, template, checkpoint.spawnSample) : template;
     if (!selectedRoute || !definition) {
         throw new SimulationInputError('invalid-checkpoint', 'Missing route or opponent');
     }
     return {
         configuration: checkpoint.configuration, scenario, sessionId, selectedRoute,
         health: new Map([[enemy.encounterId, { current: enemy.health, maximum: enemy.maxHealth }]]),
-        encounters: new Map([[enemy.encounterId, { definition, location: checkpoint.sourceLocation }]]),
+        encounters: new Map([[enemy.encounterId, { definition, location: checkpoint.sourceLocation, ...(checkpoint.formatVersion === 2 ? { sample: checkpoint.spawnSample } : {}) }]]),
         captures: snapshot.encounter.phase === 'capturing' ? new Map([[enemy.encounterId, { resolvesAtMs: snapshot.encounter.resolvesAtMs }]]) : new Map(),
         atMs: snapshot.atMs, steps: snapshot.sequence, nextEntity: checkpoint.nextEntity,
         randomState: checkpoint.randomState, autoElapsedMs: checkpoint.autoElapsedMs, lastClickAtMs: checkpoint.lastClickAtMs,

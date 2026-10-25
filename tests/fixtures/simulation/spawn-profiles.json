@@ -1,0 +1,162 @@
+[
+  {
+    "location": {
+      "region": 0,
+      "route": 1
+    },
+    "pokemonId": 16,
+    "inputs": {
+      "normalizedRoute": 1,
+      "baseCatchRate": 100,
+      "pokeballBonus": 5,
+      "oakBonus": 2,
+      "captureDurationMs": 200,
+      "moneyMultiplier": 1.5,
+      "tokenMultiplier": 1.25
+    }
+  },
+  {
+    "location": {
+      "region": 0,
+      "route": 1
+    },
+    "pokemonId": 16.01,
+    "inputs": {
+      "normalizedRoute": 1,
+      "baseCatchRate": 100,
+      "pokeballBonus": 5,
+      "oakBonus": 2,
+      "captureDurationMs": 200,
+      "moneyMultiplier": 1.5,
+      "tokenMultiplier": 1.25
+    }
+  },
+  {
+    "location": {
+      "region": 0,
+      "route": 2
+    },
+    "pokemonId": 19,
+    "inputs": {
+      "normalizedRoute": 2,
+      "baseCatchRate": 100,
+      "pokeballBonus": 5,
+      "oakBonus": 2,
+      "captureDurationMs": 450,
+      "moneyMultiplier": 1.5,
+      "tokenMultiplier": 1.25
+    }
+  },
+  {
+    "location": {
+      "region": 0,
+      "route": 2
+    },
+    "pokemonId": 19.01,
+    "inputs": {
+      "normalizedRoute": 2,
+      "baseCatchRate": 100,
+      "pokeballBonus": 5,
+      "oakBonus": 2,
+      "captureDurationMs": 450,
+      "moneyMultiplier": 1.5,
+      "tokenMultiplier": 1.25
+    }
+  },
+  {
+    "location": {
+      "region": 0,
+      "route": 3
+    },
+    "pokemonId": 16,
+    "inputs": {
+      "normalizedRoute": 3,
+      "baseCatchRate": 100,
+      "pokeballBonus": 5,
+      "oakBonus": 2,
+      "captureDurationMs": 300,
+      "moneyMultiplier": 1.5,
+      "tokenMultiplier": 1.25
+    }
+  },
+  {
+    "location": {
+      "region": 0,
+      "route": 3
+    },
+    "pokemonId": 16.01,
+    "inputs": {
+      "normalizedRoute": 3,
+      "baseCatchRate": 100,
+      "pokeballBonus": 5,
+      "oakBonus": 2,
+      "captureDurationMs": 300,
+      "moneyMultiplier": 1.5,
+      "tokenMultiplier": 1.25
+    }
+  },
+  {
+    "location": {
+      "region": 0,
+      "route": 4
+    },
+    "pokemonId": 21,
+    "inputs": {
+      "normalizedRoute": 4,
+      "baseCatchRate": 100,
+      "pokeballBonus": 5,
+      "oakBonus": 2,
+      "captureDurationMs": 500,
+      "moneyMultiplier": 1.5,
+      "tokenMultiplier": 1.25
+    }
+  },
+  {
+    "location": {
+      "region": 0,
+      "route": 4
+    },
+    "pokemonId": 21.01,
+    "inputs": {
+      "normalizedRoute": 4,
+      "baseCatchRate": 100,
+      "pokeballBonus": 5,
+      "oakBonus": 2,
+      "captureDurationMs": 500,
+      "moneyMultiplier": 1.5,
+      "tokenMultiplier": 1.25
+    }
+  },
+  {
+    "location": {
+      "region": 1,
+      "route": 1
+    },
+    "pokemonId": 161,
+    "inputs": {
+      "normalizedRoute": 1,
+      "baseCatchRate": 100,
+      "pokeballBonus": 5,
+      "oakBonus": 2,
+      "captureDurationMs": 500,
+      "moneyMultiplier": 1.5,
+      "tokenMultiplier": 1.25
+    }
+  },
+  {
+    "location": {
+      "region": 1,
+      "route": 1
+    },
+    "pokemonId": 161.01,
+    "inputs": {
+      "normalizedRoute": 1,
+      "baseCatchRate": 100,
+      "pokeballBonus": 5,
+      "oakBonus": 2,
+      "captureDurationMs": 500,
+      "moneyMultiplier": 1.5,
+      "tokenMultiplier": 1.25
+    }
+  }
+]
