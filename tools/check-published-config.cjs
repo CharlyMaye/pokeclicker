@@ -12,6 +12,13 @@ async function checkPublishedConfiguration(outputRoot) {
     const files = new Map(Object.keys(expected).map(name => [
         `/pokeclicker/config/${name}.json`, readFileSync(path.join(outputRoot, 'config', `${name}.json`)),
     ]));
+    const release = require('../src/runtime/configuration/generated/release.json');
+    assert.deepEqual(JSON.parse(readFileSync(path.join(outputRoot, 'configuration/manifest.json'), 'utf8')), release);
+    for (const [name, file] of Object.entries(release.files)) {
+        const bytes = readFileSync(path.join(outputRoot, file.path));
+        assert.deepEqual(bytes, readFileSync(path.join(sourceRoot, 'config', `${name}.json`)));
+        files.set(`/pokeclicker/${file.path}`, bytes);
+    }
     // Serve only the emitted files at the Pages project subpath. This checks
     // packaging and relative URL resolution; it is not a browser runtime loader.
     const server = createServer((request, response) => {
@@ -23,10 +30,10 @@ async function checkPublishedConfiguration(outputRoot) {
     await once(server, 'listening');
     try {
         const base = `http://127.0.0.1:${server.address().port}/pokeclicker/`;
-        for (const name of Object.keys(expected)) {
-            const response = await fetch(new URL(`config/${name}.json`, base));
+        for (const [urlPath, bytes] of files) {
+            const response = await fetch(new URL(urlPath, base));
             assert.equal(response.status, 200);
-            assert.equal(await response.text(), readFileSync(path.join(sourceRoot, 'config', `${name}.json`), 'utf8'));
+            assert.deepEqual(Buffer.from(await response.arrayBuffer()), bytes);
         }
         assert.equal((await fetch(new URL('/config/combat.json', base))).status, 404);
     } finally {

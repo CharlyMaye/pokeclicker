@@ -1,5 +1,18 @@
 module.exports = {
     root: true,
+    ignorePatterns: ['src/contracts/generated/**'],
+    overrides: [
+        {
+            files: ['src/runtime/**/*.ts'],
+            parserOptions: { project: ['./tsconfig.runtime.json'] },
+        },
+        {
+            files: ['src/contracts/**/*.js', 'src/contracts/**/*.ts'],
+            parserOptions: { project: ['./tsconfig.contracts.json'] },
+            env: { browser: false },
+            rules: { '@typescript-eslint/no-var-requires': 'off' },
+        },
+    ],
     'env': {
         'browser': true,
         'es6': true,

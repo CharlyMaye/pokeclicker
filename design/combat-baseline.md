@@ -1,6 +1,6 @@
 # First migration slice: route combat baseline and configuration
 
-This slice starts stage 1 of the [technical redesign](technical-redesign.md). It adds executable characterization tests and publishes the first configuration files. The existing game still uses its original constants; the new engine is not active. Save fixtures, simulation contracts, runtime loading and the rest of stage 1 remain future work.
+This slice starts stage 1 of the [technical redesign](technical-redesign.md). It adds executable characterization tests and publishes the first configuration files. The existing game still uses its original constants; the new engine is not active. Save fixtures, simulation contracts and the rest of stage 1 remain future work. Runtime loading is now described in [Runtime configuration loading](runtime-configuration.md).
 
 ## Configuration boundary
 
@@ -14,11 +14,11 @@ The draft-07 JSON schemas in `schemas/` define the permitted shape, required fie
 
 For this legacy-compatible baseline, the automatic attack interval must be a multiple of the simulation step. The click cooldown may be shorter than the step. Do not turn it into one click per tick: timestamped commands are needed in the future engine.
 
-`tools/configuration.cjs` is a build-time boundary, not a simulation dependency. It returns detached, frozen settings (the initial schemas contain only scalar properties). The schemas are the source of truth for configuration structure; this slice deliberately introduces no parallel TypeScript interfaces. When runtime loading is introduced, generate types from these schemas or check an explicit type/schema correspondence in CI. Nested settings will also require recursive immutability.
+`tools/configuration.cjs` is a build-time boundary, not a simulation dependency. It returns detached, frozen settings (the initial schemas contain only scalar properties). The schemas are the source of truth for configuration structure. The runtime configuration slice now generates types and validators from them and checks for drift in CI. Nested settings will also require recursive immutability.
 
 `gulp public` validates before copying `public/**` into `build/`. Restart the development server after editing schemas or validation tooling. Normal builds run it first, and `gulp website` copies the result into `docs/`. The deployed files therefore live at `/pokeclicker/config/*.json`. The publication check compares emitted bytes with source and serves them at that project subpath. It does not claim to test a runtime loader that does not yet exist.
 
-The future loader must check a consistent code/data version before startup. A cache manifest, browser error reporting and typed runtime injection belong to that slice, before these settings control gameplay.
+The runtime loader now checks a consistent code/data version before returning typed settings. Connecting it to startup and presenting errors in the browser remain work for the new host, before these settings control gameplay.
 
 ## Characterized behavior
 
