@@ -7,6 +7,8 @@ import PokemonType from '../../src/modules/enums/PokemonType';
 import Rand from '../../src/modules/utilities/Rand';
 import combat from '../../public/config/combat.json';
 import simulation from '../../public/config/simulation.json';
+import { RouteCombatSimulation } from '../../src/simulation/combat/RouteCombatSimulation';
+import routeScenario from '../fixtures/simulation/route-combat.json';
 
 // Synthetic route encounter. Use real damage/defeat methods without depending
 // on translated display names or the full Pokemon catalog constructor.
@@ -179,5 +181,57 @@ describe('legacy route combat baseline', () => {
         vi.advanceTimersByTime(200);
         expect(capture).toHaveBeenCalledWith(enemy, 1, GameConstants.Region.kanto);
         expect(Battle.generateNewEnemy).not.toHaveBeenCalled();
+    });
+});
+
+describe('headless engine parity with legacy battle methods', () => {
+    it.each([[0, 0.25], [2, 0.25], [2, 0.75]])('matches selected effects with %s balls and random draw %s', (balls, draw) => {
+        const definition = routeScenario.opponents[0];
+        let remainingBalls = balls;
+        const captured = [];
+        game.party.calculatePokemonAttack.mockReturnValue(definition.autoAttackDamage);
+        game.party.calculateClickAttack.mockReturnValue(routeScenario.clickAttackDamage);
+        game.pokeballs.calculatePokeballToUse = () => remainingBalls > 0 ? GameConstants.Pokeball.Pokeball : GameConstants.Pokeball.None;
+        game.pokeballs.calculateCatchTime = () => definition.captureDurationMs;
+        game.pokeballs.usePokeball.mockImplementation(() => remainingBalls--);
+        vi.spyOn(Rand, 'next').mockReturnValue(draw);
+        vi.spyOn(Battle, 'catchPokemon').mockImplementation(target => captured.push(target.id));
+        const spawn = () => {
+            enemy = encounter(definition.health);
+            enemy.catchRate = definition.captureProbability * 100;
+            enemy.reward.amount = definition.moneyReward;
+            enemy.exp = definition.experienceReward;
+            Battle.enemyPokemon(enemy);
+            Battle.counter = 0;
+        };
+        Battle.generateNewEnemy.mockImplementation(spawn);
+        spawn();
+        const engine = new RouteCombatSimulation('parity', { combat, simulation }, {
+            ...routeScenario, initialPokeballs: balls,
+        }, 1, state => ({ state: state + 1, value: draw }));
+        const inputs = [49, 50, 100, 150, 200, 349, 350, 399];
+        inputs.forEach((atMs, index) => engine.submit({ protocolVersion: 1, sessionId: 'parity', sequence: index + 1, atMs, type: 'ClickAttack' }));
+        const ticks = Array.from({ length: 40 }, (_, index) => (index + 1) * GameConstants.TICK_TIME);
+        const timeline = [...new Set([...inputs, ...ticks])].sort((a, b) => a - b);
+        let last = 0;
+        for (const atMs of timeline) {
+            // Explicit tie order: capture timers, input, then Game.gameTick's battle counter.
+            vi.advanceTimersByTime(atMs - last);
+            last = atMs;
+            if (inputs.includes(atMs)) Battle.clickAttack();
+            if (atMs % GameConstants.TICK_TIME === 0) {
+                Battle.counter += GameConstants.TICK_TIME;
+                if (Battle.counter >= GameConstants.BATTLE_TICK) Battle.tick();
+                const result = engine.advanceTo(atMs);
+                expect(result.snapshot.encounter.enemy.health).toBe(Battle.enemyPokemon().health());
+                expect(result.snapshot.encounter.phase === 'capturing').toBe(Battle.catching());
+                expect(engine.progress.pokeballs).toBe(remainingBalls);
+                expect(engine.progress.clickAttacks).toBe(game.statistics.clickAttacks());
+                expect(engine.progress.defeats).toBe(game.statistics.routeKills[0][1]());
+                expect(engine.progress.money).toBe(game.wallet.addAmount.mock.calls.reduce((sum, [reward]) => sum + reward.amount, 0));
+                expect(engine.progress.experience).toBe(game.party.gainExp.mock.calls.reduce((sum, [exp]) => sum + exp, 0));
+                expect(engine.progress.captured.reduce((sum, entry) => sum + entry.count, 0)).toBe(captured.length);
+            }
+        }
     });
 });

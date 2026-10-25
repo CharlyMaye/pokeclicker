@@ -1,4 +1,8 @@
 {
-  "schemaVersion": 1,
-  "stepMs": 100
+  "schemaVersion": 2,
+  "stepMs": 100,
+  "maxStepsPerAdvance": 100,
+  "maxQueuedCommands": 256,
+  "maxTransitionsPerStep": 512,
+  "maxCommandLeadMs": 10000
 }

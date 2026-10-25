@@ -139,9 +139,9 @@ describe('runtime configuration boundary', () => {
     });
 
     it('uses the same schema and cross-file validation as the build', () => {
-        const data = { combat: JSON.parse(source('combat')), simulation: { schemaVersion: 1, stepMs: 300 } };
+        const data = { combat: JSON.parse(source('combat')), simulation: { ...JSON.parse(source('simulation')), stepMs: 300 } };
         expect(() => validateConfiguration(data)).toThrow(/autoAttackIntervalMs.*stepMs/);
-        data.simulation = { schemaVersion: 1, stepMs: 100, typo: true };
+        data.simulation = { ...JSON.parse(source('simulation')), typo: true };
         expect(() => validateConfiguration(data)).toThrow(/simulation.json/);
     });
 });
