@@ -44,4 +44,4 @@ Current save collection includes only objects with a `saveKey`. Active battle st
 
 Protocol tests cover validation, immutable projections, independent display sampling, sequence/session failures and recovery after rejection. Type checks ensure renderers cannot mutate nested projections. Ten persistence/codec tests cover the three fixtures and legacy rounding of fractional attack bonuses, alongside the existing combat baseline.
 
-Next: implement the headless route-combat world against these contracts and the behavioral baseline. Keep save import inactive until its target save format, version policy, recovery rules and preservation of the original are implemented and tested.
+The first [headless route-combat slice](headless-combat.md) now consumes these contracts and the behavioral baseline. It implements a fixed route with prototype-owned progression totals; indirect effects and live-game integration remain open. Keep save import inactive until its target save format, version policy, recovery rules and preservation of the original are implemented and tested.

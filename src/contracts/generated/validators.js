@@ -148,7 +148,7 @@ return errors === 0;
 }
 
 exports.validateSimulation = validate11;
-const schema12 = {"$schema":"http://json-schema.org/draft-07/schema#","title":"Simulation configuration","type":"object","additionalProperties":false,"required":["schemaVersion","stepMs"],"properties":{"schemaVersion":{"const":1},"stepMs":{"type":"integer","minimum":1,"maximum":9007199254740991}}};
+const schema12 = {"$schema":"http://json-schema.org/draft-07/schema#","title":"Simulation configuration","type":"object","additionalProperties":false,"required":["schemaVersion","stepMs","maxStepsPerAdvance","maxQueuedCommands","maxTransitionsPerStep","maxCommandLeadMs"],"properties":{"schemaVersion":{"const":2},"stepMs":{"type":"integer","minimum":1,"maximum":9007199254740991},"maxStepsPerAdvance":{"type":"integer","minimum":1,"maximum":9007199254740991},"maxQueuedCommands":{"type":"integer","minimum":1,"maximum":9007199254740991},"maxTransitionsPerStep":{"type":"integer","minimum":1,"maximum":9007199254740991},"maxCommandLeadMs":{"type":"integer","minimum":1,"maximum":9007199254740991}}};
 
 function validate11(data, {instancePath="", parentData, parentDataProperty, rootData=data}={}){
 let vErrors = null;
@@ -174,9 +174,8 @@ vErrors.push(err1);
 }
 errors++;
 }
-for(const key0 of Object.keys(data)){
-if(!((key0 === "schemaVersion") || (key0 === "stepMs"))){
-const err2 = {instancePath,schemaPath:"#/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key0},message:"must NOT have additional properties"};
+if((data.maxStepsPerAdvance === undefined) || (!(func0.call(data, "maxStepsPerAdvance")))){
+const err2 = {instancePath,schemaPath:"#/required",keyword:"required",params:{missingProperty: "maxStepsPerAdvance"},message:"must have required property '"+"maxStepsPerAdvance"+"'"};
 if(vErrors === null){
 vErrors = [err2];
 }
@@ -185,10 +184,8 @@ vErrors.push(err2);
 }
 errors++;
 }
-}
-if(data.schemaVersion !== undefined && func0.call(data, "schemaVersion")){
-if(1 !== data.schemaVersion){
-const err3 = {instancePath:instancePath+"/schemaVersion",schemaPath:"#/properties/schemaVersion/const",keyword:"const",params:{allowedValue: 1},message:"must be equal to constant"};
+if((data.maxQueuedCommands === undefined) || (!(func0.call(data, "maxQueuedCommands")))){
+const err3 = {instancePath,schemaPath:"#/required",keyword:"required",params:{missingProperty: "maxQueuedCommands"},message:"must have required property '"+"maxQueuedCommands"+"'"};
 if(vErrors === null){
 vErrors = [err3];
 }
@@ -197,11 +194,8 @@ vErrors.push(err3);
 }
 errors++;
 }
-}
-if(data.stepMs !== undefined && func0.call(data, "stepMs")){
-let data1 = data.stepMs;
-if(!(((typeof data1 == "number") && (!(data1 % 1) && !isNaN(data1))) && (isFinite(data1)))){
-const err4 = {instancePath:instancePath+"/stepMs",schemaPath:"#/properties/stepMs/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
+if((data.maxTransitionsPerStep === undefined) || (!(func0.call(data, "maxTransitionsPerStep")))){
+const err4 = {instancePath,schemaPath:"#/required",keyword:"required",params:{missingProperty: "maxTransitionsPerStep"},message:"must have required property '"+"maxTransitionsPerStep"+"'"};
 if(vErrors === null){
 vErrors = [err4];
 }
@@ -210,9 +204,8 @@ vErrors.push(err4);
 }
 errors++;
 }
-if((typeof data1 == "number") && (isFinite(data1))){
-if(data1 > 9007199254740991 || isNaN(data1)){
-const err5 = {instancePath:instancePath+"/stepMs",schemaPath:"#/properties/stepMs/maximum",keyword:"maximum",params:{comparison: "<=", limit: 9007199254740991},message:"must be <= 9007199254740991"};
+if((data.maxCommandLeadMs === undefined) || (!(func0.call(data, "maxCommandLeadMs")))){
+const err5 = {instancePath,schemaPath:"#/required",keyword:"required",params:{missingProperty: "maxCommandLeadMs"},message:"must have required property '"+"maxCommandLeadMs"+"'"};
 if(vErrors === null){
 vErrors = [err5];
 }
@@ -221,8 +214,9 @@ vErrors.push(err5);
 }
 errors++;
 }
-if(data1 < 1 || isNaN(data1)){
-const err6 = {instancePath:instancePath+"/stepMs",schemaPath:"#/properties/stepMs/minimum",keyword:"minimum",params:{comparison: ">=", limit: 1},message:"must be >= 1"};
+for(const key0 of Object.keys(data)){
+if(!((((((key0 === "schemaVersion") || (key0 === "stepMs")) || (key0 === "maxStepsPerAdvance")) || (key0 === "maxQueuedCommands")) || (key0 === "maxTransitionsPerStep")) || (key0 === "maxCommandLeadMs"))){
+const err6 = {instancePath,schemaPath:"#/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key0},message:"must NOT have additional properties"};
 if(vErrors === null){
 vErrors = [err6];
 }
@@ -232,15 +226,201 @@ vErrors.push(err6);
 errors++;
 }
 }
-}
-}
-else {
-const err7 = {instancePath,schemaPath:"#/type",keyword:"type",params:{type: "object"},message:"must be object"};
+if(data.schemaVersion !== undefined && func0.call(data, "schemaVersion")){
+if(2 !== data.schemaVersion){
+const err7 = {instancePath:instancePath+"/schemaVersion",schemaPath:"#/properties/schemaVersion/const",keyword:"const",params:{allowedValue: 2},message:"must be equal to constant"};
 if(vErrors === null){
 vErrors = [err7];
 }
 else {
 vErrors.push(err7);
+}
+errors++;
+}
+}
+if(data.stepMs !== undefined && func0.call(data, "stepMs")){
+let data1 = data.stepMs;
+if(!(((typeof data1 == "number") && (!(data1 % 1) && !isNaN(data1))) && (isFinite(data1)))){
+const err8 = {instancePath:instancePath+"/stepMs",schemaPath:"#/properties/stepMs/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
+if(vErrors === null){
+vErrors = [err8];
+}
+else {
+vErrors.push(err8);
+}
+errors++;
+}
+if((typeof data1 == "number") && (isFinite(data1))){
+if(data1 > 9007199254740991 || isNaN(data1)){
+const err9 = {instancePath:instancePath+"/stepMs",schemaPath:"#/properties/stepMs/maximum",keyword:"maximum",params:{comparison: "<=", limit: 9007199254740991},message:"must be <= 9007199254740991"};
+if(vErrors === null){
+vErrors = [err9];
+}
+else {
+vErrors.push(err9);
+}
+errors++;
+}
+if(data1 < 1 || isNaN(data1)){
+const err10 = {instancePath:instancePath+"/stepMs",schemaPath:"#/properties/stepMs/minimum",keyword:"minimum",params:{comparison: ">=", limit: 1},message:"must be >= 1"};
+if(vErrors === null){
+vErrors = [err10];
+}
+else {
+vErrors.push(err10);
+}
+errors++;
+}
+}
+}
+if(data.maxStepsPerAdvance !== undefined && func0.call(data, "maxStepsPerAdvance")){
+let data2 = data.maxStepsPerAdvance;
+if(!(((typeof data2 == "number") && (!(data2 % 1) && !isNaN(data2))) && (isFinite(data2)))){
+const err11 = {instancePath:instancePath+"/maxStepsPerAdvance",schemaPath:"#/properties/maxStepsPerAdvance/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
+if(vErrors === null){
+vErrors = [err11];
+}
+else {
+vErrors.push(err11);
+}
+errors++;
+}
+if((typeof data2 == "number") && (isFinite(data2))){
+if(data2 > 9007199254740991 || isNaN(data2)){
+const err12 = {instancePath:instancePath+"/maxStepsPerAdvance",schemaPath:"#/properties/maxStepsPerAdvance/maximum",keyword:"maximum",params:{comparison: "<=", limit: 9007199254740991},message:"must be <= 9007199254740991"};
+if(vErrors === null){
+vErrors = [err12];
+}
+else {
+vErrors.push(err12);
+}
+errors++;
+}
+if(data2 < 1 || isNaN(data2)){
+const err13 = {instancePath:instancePath+"/maxStepsPerAdvance",schemaPath:"#/properties/maxStepsPerAdvance/minimum",keyword:"minimum",params:{comparison: ">=", limit: 1},message:"must be >= 1"};
+if(vErrors === null){
+vErrors = [err13];
+}
+else {
+vErrors.push(err13);
+}
+errors++;
+}
+}
+}
+if(data.maxQueuedCommands !== undefined && func0.call(data, "maxQueuedCommands")){
+let data3 = data.maxQueuedCommands;
+if(!(((typeof data3 == "number") && (!(data3 % 1) && !isNaN(data3))) && (isFinite(data3)))){
+const err14 = {instancePath:instancePath+"/maxQueuedCommands",schemaPath:"#/properties/maxQueuedCommands/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
+if(vErrors === null){
+vErrors = [err14];
+}
+else {
+vErrors.push(err14);
+}
+errors++;
+}
+if((typeof data3 == "number") && (isFinite(data3))){
+if(data3 > 9007199254740991 || isNaN(data3)){
+const err15 = {instancePath:instancePath+"/maxQueuedCommands",schemaPath:"#/properties/maxQueuedCommands/maximum",keyword:"maximum",params:{comparison: "<=", limit: 9007199254740991},message:"must be <= 9007199254740991"};
+if(vErrors === null){
+vErrors = [err15];
+}
+else {
+vErrors.push(err15);
+}
+errors++;
+}
+if(data3 < 1 || isNaN(data3)){
+const err16 = {instancePath:instancePath+"/maxQueuedCommands",schemaPath:"#/properties/maxQueuedCommands/minimum",keyword:"minimum",params:{comparison: ">=", limit: 1},message:"must be >= 1"};
+if(vErrors === null){
+vErrors = [err16];
+}
+else {
+vErrors.push(err16);
+}
+errors++;
+}
+}
+}
+if(data.maxTransitionsPerStep !== undefined && func0.call(data, "maxTransitionsPerStep")){
+let data4 = data.maxTransitionsPerStep;
+if(!(((typeof data4 == "number") && (!(data4 % 1) && !isNaN(data4))) && (isFinite(data4)))){
+const err17 = {instancePath:instancePath+"/maxTransitionsPerStep",schemaPath:"#/properties/maxTransitionsPerStep/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
+if(vErrors === null){
+vErrors = [err17];
+}
+else {
+vErrors.push(err17);
+}
+errors++;
+}
+if((typeof data4 == "number") && (isFinite(data4))){
+if(data4 > 9007199254740991 || isNaN(data4)){
+const err18 = {instancePath:instancePath+"/maxTransitionsPerStep",schemaPath:"#/properties/maxTransitionsPerStep/maximum",keyword:"maximum",params:{comparison: "<=", limit: 9007199254740991},message:"must be <= 9007199254740991"};
+if(vErrors === null){
+vErrors = [err18];
+}
+else {
+vErrors.push(err18);
+}
+errors++;
+}
+if(data4 < 1 || isNaN(data4)){
+const err19 = {instancePath:instancePath+"/maxTransitionsPerStep",schemaPath:"#/properties/maxTransitionsPerStep/minimum",keyword:"minimum",params:{comparison: ">=", limit: 1},message:"must be >= 1"};
+if(vErrors === null){
+vErrors = [err19];
+}
+else {
+vErrors.push(err19);
+}
+errors++;
+}
+}
+}
+if(data.maxCommandLeadMs !== undefined && func0.call(data, "maxCommandLeadMs")){
+let data5 = data.maxCommandLeadMs;
+if(!(((typeof data5 == "number") && (!(data5 % 1) && !isNaN(data5))) && (isFinite(data5)))){
+const err20 = {instancePath:instancePath+"/maxCommandLeadMs",schemaPath:"#/properties/maxCommandLeadMs/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
+if(vErrors === null){
+vErrors = [err20];
+}
+else {
+vErrors.push(err20);
+}
+errors++;
+}
+if((typeof data5 == "number") && (isFinite(data5))){
+if(data5 > 9007199254740991 || isNaN(data5)){
+const err21 = {instancePath:instancePath+"/maxCommandLeadMs",schemaPath:"#/properties/maxCommandLeadMs/maximum",keyword:"maximum",params:{comparison: "<=", limit: 9007199254740991},message:"must be <= 9007199254740991"};
+if(vErrors === null){
+vErrors = [err21];
+}
+else {
+vErrors.push(err21);
+}
+errors++;
+}
+if(data5 < 1 || isNaN(data5)){
+const err22 = {instancePath:instancePath+"/maxCommandLeadMs",schemaPath:"#/properties/maxCommandLeadMs/minimum",keyword:"minimum",params:{comparison: ">=", limit: 1},message:"must be >= 1"};
+if(vErrors === null){
+vErrors = [err22];
+}
+else {
+vErrors.push(err22);
+}
+errors++;
+}
+}
+}
+}
+else {
+const err23 = {instancePath,schemaPath:"#/type",keyword:"type",params:{type: "object"},message:"must be object"};
+if(vErrors === null){
+vErrors = [err23];
+}
+else {
+vErrors.push(err23);
 }
 errors++;
 }

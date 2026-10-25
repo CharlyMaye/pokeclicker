@@ -3,9 +3,42 @@
   "title": "Simulation configuration",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "stepMs"],
+  "required": [
+    "schemaVersion",
+    "stepMs",
+    "maxStepsPerAdvance",
+    "maxQueuedCommands",
+    "maxTransitionsPerStep",
+    "maxCommandLeadMs"
+  ],
   "properties": {
-    "schemaVersion": { "const": 1 },
-    "stepMs": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }
+    "schemaVersion": {
+      "const": 2
+    },
+    "stepMs": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "maxStepsPerAdvance": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "maxQueuedCommands": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "maxTransitionsPerStep": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "maxCommandLeadMs": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    }
   }
 }

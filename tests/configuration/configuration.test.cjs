@@ -32,6 +32,7 @@ test('rejects missing fields, unknown properties and unsupported versions withou
         data => { delete data.combat.autoAttackIntervalMs; },
         data => { data.combat.typo = 10; },
         data => { data.combat.schemaVersion = 2; },
+        data => { data.simulation.schemaVersion = 1; },
         data => { data.simulation = null; },
     ]) {
         const data = copy();
@@ -46,6 +47,17 @@ test('rejects an automatic attack interval incompatible with the step', () => {
     const data = copy();
     data.simulation.stepMs = 300;
     assert.throws(() => validateConfiguration(data), /autoAttackIntervalMs.*stepMs/);
+});
+
+test('requires positive safe-integer processing limits without implicit defaults', () => {
+    for (const field of ['maxStepsPerAdvance', 'maxQueuedCommands', 'maxTransitionsPerStep', 'maxCommandLeadMs']) {
+        for (const value of [0, -1, 0.5, '100', null, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1, undefined]) {
+            const data = copy();
+            if (value === undefined) delete data.simulation[field];
+            else data.simulation[field] = value;
+            assert.throws(() => validateConfiguration(data), new RegExp(`simulation.json.*${field}`));
+        }
+    }
 });
 
 function withFixture(run) {
