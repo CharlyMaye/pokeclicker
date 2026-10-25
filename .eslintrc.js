@@ -9,6 +9,11 @@ module.exports = {
             rules: { 'no-restricted-imports': ['error', { patterns: ['**/simulation/**', '**/runtime/**', '**/modules/**', '**/scripts/**', 'node:*'] }] },
         },
         {
+            files: ['src/client/renderers/**/*.ts'],
+            parserOptions: { project: ['./tsconfig.renderers.json'] },
+            env: { browser: true },
+        },
+        {
             files: ['src/simulation/**/*.ts'],
             parserOptions: { project: ['./tsconfig.simulation.json'] },
             env: { browser: false },
