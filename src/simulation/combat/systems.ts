@@ -1,5 +1,6 @@
-import { COMBAT_PROTOCOL_VERSION } from '../../contracts/combat-protocol';
+import { COMBAT_PROTOCOL_VERSION, RouteReference } from '../../contracts/combat-protocol';
 import { CombatWorld, CommandOutcome, RandomStep, StepOutput } from './model';
+import { findRoute, routeKey, sameRoute } from './routes';
 import { add, validateRandomState } from './validation';
 
 function draw(world: CombatWorld, random: RandomStep): number {
@@ -16,12 +17,12 @@ export function spawnEnemy(world: CombatWorld, random: RandomStep): void {
     if (world.encounters.size !== 0) {
         throw new Error('Cannot spawn over an existing encounter');
     }
-    const definitions = world.scenario.opponents;
+    const definitions = world.selectedRoute.opponents;
     const definition = definitions[Math.floor(draw(world, random) * definitions.length)];
     const entity = world.nextEntity;
     world.nextEntity = add(entity, 1, 'next entity');
     world.health.set(entity, { current: definition.health, maximum: definition.health });
-    world.encounters.set(entity, { definition });
+    world.encounters.set(entity, { definition, location: world.selectedRoute.location });
     world.autoElapsedMs = 0;
 }
 
@@ -36,22 +37,34 @@ function eventHeader(world: CombatWorld) {
     return { protocolVersion: COMBAT_PROTOCOL_VERSION, sessionId: world.sessionId, sequence: world.eventSequence, atMs: world.atMs } as const;
 }
 
-function definitionFor(world: CombatWorld, entity: number) {
+function encounterFor(world: CombatWorld, entity: number) {
     const encounter = world.encounters.get(entity);
     if (!encounter) {
         throw new Error('Missing encounter component');
     }
-    return encounter.definition;
+    return encounter;
+}
+
+function progressFor(world: CombatWorld, location: RouteReference) {
+    const key = routeKey(location);
+    let progress = world.progress.routes.get(key);
+    if (!progress) {
+        progress = { location, defeats: 0, captures: 0 };
+        world.progress.routes.set(key, progress);
+    }
+    return progress;
 }
 
 export function settleDefeats(world: CombatWorld, random: RandomStep, output: StepOutput): void {
     // Query first; structural changes happen after that selection is complete.
     const defeated = [...world.health].filter(([entity, health]) => health.current === 0 && !world.captures.has(entity));
     for (const [entity] of defeated) {
-        const definition = definitionFor(world, entity);
+        const { definition, location } = encounterFor(world, entity);
         world.progress.money = add(world.progress.money, definition.moneyReward, 'money');
         world.progress.experience = add(world.progress.experience, definition.experienceReward, 'experience');
         world.progress.defeats = add(world.progress.defeats, 1, 'defeats');
+        const routeProgress = progressFor(world, location);
+        routeProgress.defeats = add(routeProgress.defeats, 1, 'route defeats');
         output.events.push(Object.freeze({ ...eventHeader(world), type: 'EnemyDefeated', encounterId: entity, pokemonId: definition.pokemonId }));
         if (world.pokeballs > 0) {
             world.pokeballs--;
@@ -66,13 +79,15 @@ export function settleDefeats(world: CombatWorld, random: RandomStep, output: St
 export function resolveCaptures(world: CombatWorld, random: RandomStep, output: StepOutput): void {
     const due = [...world.captures].filter(([, capture]) => capture.resolvesAtMs === world.atMs);
     for (const [entity] of due) {
-        const definition = definitionFor(world, entity);
+        const { definition, location } = encounterFor(world, entity);
         // Preserve Rand.chance's inclusive comparison, including an exact zero draw.
         const caught = draw(world, random) <= definition.captureProbability;
         if (caught) {
             const count = world.progress.captured.get(definition.pokemonId) ?? 0;
             world.progress.captured.set(definition.pokemonId, add(count, 1, 'capture count'));
             world.progress.dungeonTokens = add(world.progress.dungeonTokens, definition.dungeonTokenReward, 'dungeon tokens');
+            const routeProgress = progressFor(world, location);
+            routeProgress.captures = add(routeProgress.captures, 1, 'route captures');
         }
         output.events.push(Object.freeze({ ...eventHeader(world), type: 'CaptureResolved', encounterId: entity, pokemonId: definition.pokemonId, caught }));
         removeEnemy(world, entity);
@@ -87,9 +102,7 @@ export function processCommand(world: CombatWorld, random: RandomStep, output: S
     }
     let result: CommandOutcome['result'];
     if (command.type === 'ChangeRoute') {
-        const location = world.scenario.location;
-        result = command.destination.region === location.region && command.destination.route === location.route
-            ? 'route-unchanged' : 'route-unavailable';
+        result = changeRoute(world, command.destination, random);
     } else if (!world.scenario.clickAttacksAllowed) {
         result = 'disabled';
     } else if (world.atMs - world.lastClickAtMs < world.configuration.combat.clickAttackCooldownMs) {
@@ -107,6 +120,25 @@ export function processCommand(world: CombatWorld, random: RandomStep, output: S
         settleDefeats(world, random, output);
     }
     output.commands.push(Object.freeze({ sequence: command.sequence, atMs: command.atMs, result }));
+}
+
+function changeRoute(world: CombatWorld, destination: RouteReference, random: RandomStep): CommandOutcome['result'] {
+    if (sameRoute(world.selectedRoute.location, destination)) {
+        return 'route-unchanged';
+    }
+    const route = findRoute(world.scenario.routes, destination);
+    // Region travel also owns town/ship state and pending captures; it is a separate feature.
+    if (!route?.unlocked || destination.region !== world.selectedRoute.location.region) {
+        return 'route-unavailable';
+    }
+    world.selectedRoute = route;
+    if (world.captures.size === 0) {
+        for (const entity of [...world.encounters.keys()]) {
+            removeEnemy(world, entity);
+        }
+        spawnEnemy(world, random);
+    }
+    return 'applied';
 }
 
 export function automaticAttack(world: CombatWorld, random: RandomStep, output: StepOutput): void {

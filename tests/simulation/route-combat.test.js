@@ -71,7 +71,7 @@ describe('headless route combat', () => {
 
     it('preserves the legacy inclusive zero-draw comparison', () => {
         const data = structuredClone(scenario);
-        data.opponents[0].captureProbability = 0;
+        data.routes[0].opponents[0].captureProbability = 0;
         const game = create(data, configuration, fixedRandom(0));
         expect(game.advanceTo(3200).events[1].caught).toBe(true);
     });
@@ -88,7 +88,7 @@ describe('headless route combat', () => {
     it('reports disabled clicks and unavailable routes without blocking later commands', () => {
         const game = create({ ...scenario, clickAttacksAllowed: false });
         game.submit({ ...click(1, 50), type: 'ChangeRoute', destination: { region: 0, route: 2 } });
-        game.submit({ ...click(2, 50), type: 'ChangeRoute', destination: scenario.location });
+        game.submit({ ...click(2, 50), type: 'ChangeRoute', destination: scenario.initialLocation });
         game.submit(click(3, 100));
         expect(game.advanceTo(100).commands.map(command => command.result)).toEqual(['route-unavailable', 'route-unchanged', 'disabled']);
         expect(game.progress.clickAttacks).toBe(0);
@@ -106,7 +106,7 @@ describe('headless route combat', () => {
 
     it('has identical outcomes for batched or incremental advances and arbitrary display reads', () => {
         const data = structuredClone(scenario);
-        data.opponents.push({ ...data.opponents[0], pokemonId: 19.01, health: 20 });
+        data.routes[0].opponents.push({ ...data.routes[0].opponents[0], pokemonId: 19.01, health: 20 });
         const batch = new RouteCombatSimulation('combat-test', configuration, data, 123);
         const stepped = new RouteCombatSimulation('combat-test', configuration, data, 123);
         const fastDisplay = new CombatSnapshotReceiver('combat-test');
@@ -133,7 +133,7 @@ describe('headless route combat', () => {
         const data = structuredClone(scenario);
         const config = structuredClone(configuration);
         const game = create(data, config);
-        data.opponents[0].moneyReward = 999;
+        data.routes[0].opponents[0].moneyReward = 999;
         config.combat.autoAttackIntervalMs = 100;
         const initial = game.snapshot;
         const progress = game.progress;
@@ -230,8 +230,8 @@ describe('defensive processing', () => {
     it('rejects arithmetic overflow without leaving partial rewards', () => {
         const data = structuredClone(scenario);
         data.initialPokeballs = 0;
-        data.opponents[0].health = 1;
-        data.opponents[0].moneyReward = Number.MAX_SAFE_INTEGER;
+        data.routes[0].opponents[0].health = 1;
+        data.routes[0].opponents[0].moneyReward = Number.MAX_SAFE_INTEGER;
         const game = create(data);
         game.advanceTo(1000);
         expect(() => game.advanceTo(2000)).toThrow(SimulationFault);
@@ -242,7 +242,7 @@ describe('defensive processing', () => {
     it('does not accumulate old entities over many spawns', () => {
         const data = structuredClone(scenario);
         data.initialPokeballs = 0;
-        data.opponents[0].health = 1;
+        data.routes[0].opponents[0].health = 1;
         const game = create(data);
         let events = 0;
         for (let target = 10000; target <= 100000; target += 10000) {
@@ -254,16 +254,16 @@ describe('defensive processing', () => {
     });
 
     it.each([
-        data => { data.opponents = []; },
-        data => { data.opponents = new Array(1); },
-        data => { data.opponents.push({ ...data.opponents[0] }); },
-        data => { data.opponents[0].captureProbability = Infinity; },
-        data => { data.opponents[0].captureDurationMs = 0; },
+        data => { data.routes[0].opponents = []; },
+        data => { data.routes[0].opponents = new Array(1); },
+        data => { data.routes[0].opponents.push({ ...data.routes[0].opponents[0] }); },
+        data => { data.routes[0].opponents[0].captureProbability = Infinity; },
+        data => { data.routes[0].opponents[0].captureDurationMs = 0; },
         data => { data.clickAttackDamage = -1; },
         data => { data.initialPokeballs = '2'; },
-        data => { data.opponents[0].typo = 1; },
-        data => { Object.setPrototypeOf(data.opponents[0], { extra: true }); },
-        data => { Object.defineProperty(data.opponents[0], 'health', { get() { throw new Error('Must not execute'); } }); },
+        data => { data.routes[0].opponents[0].typo = 1; },
+        data => { Object.setPrototypeOf(data.routes[0].opponents[0], { extra: true }); },
+        data => { Object.defineProperty(data.routes[0].opponents[0], 'health', { get() { throw new Error('Must not execute'); } }); },
     ])('rejects malformed scenario input', change => {
         const data = structuredClone(scenario);
         change(data);

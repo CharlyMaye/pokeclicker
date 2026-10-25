@@ -1,0 +1,106 @@
+{
+  "initialLocation": {
+    "region": 0,
+    "route": 1
+  },
+  "routes": [
+    {
+      "location": {
+        "region": 0,
+        "route": 1
+      },
+      "unlocked": true,
+      "opponents": [
+        {
+          "pokemonId": 16,
+          "health": 30,
+          "autoAttackDamage": 10,
+          "moneyReward": 10,
+          "experienceReward": 12,
+          "dungeonTokenReward": 2,
+          "captureProbability": 0.5,
+          "captureDurationMs": 200
+        }
+      ]
+    },
+    {
+      "location": {
+        "region": 0,
+        "route": 2
+      },
+      "unlocked": true,
+      "opponents": [
+        {
+          "pokemonId": 19,
+          "health": 40,
+          "autoAttackDamage": 20,
+          "moneyReward": 25,
+          "experienceReward": 18,
+          "dungeonTokenReward": 9,
+          "captureProbability": 0.1,
+          "captureDurationMs": 450
+        }
+      ]
+    },
+    {
+      "location": {
+        "region": 0,
+        "route": 3
+      },
+      "unlocked": true,
+      "opponents": [
+        {
+          "pokemonId": 16,
+          "health": 50,
+          "autoAttackDamage": 5,
+          "moneyReward": 30,
+          "experienceReward": 20,
+          "dungeonTokenReward": 11,
+          "captureProbability": 0.75,
+          "captureDurationMs": 300
+        }
+      ]
+    },
+    {
+      "location": {
+        "region": 0,
+        "route": 4
+      },
+      "unlocked": false,
+      "opponents": [
+        {
+          "pokemonId": 21,
+          "health": 60,
+          "autoAttackDamage": 10,
+          "moneyReward": 40,
+          "experienceReward": 25,
+          "dungeonTokenReward": 12,
+          "captureProbability": 0.5,
+          "captureDurationMs": 500
+        }
+      ]
+    },
+    {
+      "location": {
+        "region": 1,
+        "route": 1
+      },
+      "unlocked": true,
+      "opponents": [
+        {
+          "pokemonId": 161,
+          "health": 70,
+          "autoAttackDamage": 10,
+          "moneyReward": 50,
+          "experienceReward": 30,
+          "dungeonTokenReward": 13,
+          "captureProbability": 0.5,
+          "captureDurationMs": 500
+        }
+      ]
+    }
+  ],
+  "clickAttackDamage": 10,
+  "clickAttacksAllowed": true,
+  "initialPokeballs": 2
+}
