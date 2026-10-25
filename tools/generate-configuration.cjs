@@ -35,8 +35,11 @@ interface Validator<T> {
 export const validateCombat: Validator<CombatConfiguration>;
 export const validateSimulation: Validator<SimulationConfiguration>;
 `);
+    const labBytes = readFileSync(path.join(projectRoot, 'public/config/lab.json'));
+    require('./lab-configuration.cjs').parseLabConfiguration(JSON.parse(labBytes.toString('utf8')));
+    hashes.lab = digest(labBytes);
     const version = digest(JSON.stringify(hashes));
-    const release = { version, files: Object.fromEntries(names.map(name => [name, {
+    const release = { version, files: Object.fromEntries([...names, 'lab'].map(name => [name, {
         path: `configuration/${version}/${name}.json`, sha256: hashes[name],
     }])) };
     output.set('src/runtime/configuration/generated/release.json', `${JSON.stringify(release, null, 2)}\n`);

@@ -4,6 +4,7 @@ import { once } from 'node:events';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { loadLabConfiguration } from '../../src/runtime/lab/loadLabConfiguration';
 import { loadConfiguration } from '../../src/runtime/configuration/loadConfiguration';
 import { MAX_CONFIG_BYTES, validateConfiguration } from '../../src/contracts/configuration';
 import release from '../../src/runtime/configuration/generated/release.json';
@@ -49,9 +50,17 @@ describe('runtime configuration boundary', () => {
         expect(settings).toEqual({ combat: JSON.parse(source('combat')), simulation: JSON.parse(source('simulation')) });
         expect(Object.isFrozen(settings)).toBe(true);
         expect(Object.values(settings).every(Object.isFrozen)).toBe(true);
-        for (const file of Object.values(release.files)) {
+        for (const file of [release.files.combat, release.files.simulation]) {
             expect(requested).toContain(`${prefix}${file.path}`);
         }
+    });
+
+    it.each(['/', '/pokeclicker/'])('loads the complete lab release over HTTP from %s', async prefix => {
+        const before = requested.length;
+        const bundle = await loadLabConfiguration(`${origin}${prefix}`, { timeoutMs: 5000 });
+        expect(bundle.lab).toEqual(JSON.parse(source('lab')));
+        expect(bundle.configuration).toEqual({ combat: JSON.parse(source('combat')), simulation: JSON.parse(source('simulation')) });
+        expect(requested.slice(before)).toEqual(Object.values(release.files).map(file => `${prefix}${file.path}`));
     });
 
     it.each(['relative/', 'file:///tmp/', 'https://example.com/pokeclicker', 'https://example.com/?x=1', 'https://user@example.com/'])('rejects invalid base URL %s before fetching', async base => {

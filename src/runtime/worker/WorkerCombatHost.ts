@@ -22,6 +22,7 @@ export interface WorkerCombatOptions {
     readonly deadlines: WakeScheduler;
     readonly transport: CombatTransport;
     readonly onOutputAvailable?: () => void;
+    readonly onFault?: (error: Error) => void;
 }
 
 /** Main-thread proxy and snapshot source. It owns no engine, rewards or simulation clock. */
@@ -137,6 +138,9 @@ export class WorkerCombatHost {
         }
         this.failure = error instanceof Error ? error : new Error('Unknown worker transport failure');
         this.shutdown(this.failure);
+        try {
+            this.options.onFault?.(this.failure);
+        } catch { /* Preserve the transport failure and terminated state. */ }
     }
 
     private request(payload: RequestPayload): Promise<WorkerResult> {

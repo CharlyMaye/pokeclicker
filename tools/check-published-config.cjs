@@ -9,6 +9,12 @@ async function checkPublishedConfiguration(outputRoot) {
     const sourceRoot = path.resolve(__dirname, '../public');
     const expected = loadConfiguration(sourceRoot);
     assert.deepEqual(loadConfiguration(outputRoot), expected);
+    for (const name of ['index.html', 'lab.css']) {
+        assert.deepEqual(readFileSync(path.join(outputRoot, 'ecs', name)), readFileSync(path.join(sourceRoot, 'ecs', name)));
+    }
+    for (const name of ['lab.js', 'combat.worker.js']) {
+        assert.deepEqual(readFileSync(path.join(outputRoot, 'ecs', name)), readFileSync(path.resolve(__dirname, '../build/ecs', name)));
+    }
     const files = new Map(Object.keys(expected).map(name => [
         `/pokeclicker/config/${name}.json`, readFileSync(path.join(outputRoot, 'config', `${name}.json`)),
     ]));
@@ -17,6 +23,7 @@ async function checkPublishedConfiguration(outputRoot) {
     for (const [name, file] of Object.entries(release.files)) {
         const bytes = readFileSync(path.join(outputRoot, file.path));
         assert.deepEqual(bytes, readFileSync(path.join(sourceRoot, 'config', `${name}.json`)));
+        assert.deepEqual(readFileSync(path.join(outputRoot, 'config', `${name}.json`)), bytes);
         files.set(`/pokeclicker/${file.path}`, bytes);
     }
     // Serve only the emitted files at the Pages project subpath. This checks

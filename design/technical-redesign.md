@@ -186,3 +186,7 @@ Activation is controlled by an explicit configuration option. Tests use syntheti
 ## Worker execution milestone
 
 The [worker runtime](worker-combat.md) now executes the existing route ECS in a dedicated worker, with bounded acknowledged delivery, an asynchronous input/lifecycle proxy, a browser asset and compiled-bundle tests. This completes the execution boundary within stage 4, not that entire stage: production content resolution, indirect progression bridges, legacy-save migration, offline/visibility policy and live activation remain outstanding. [Combat checkpoints](combat-checkpoints.md) now preserve and restore the prototype state through the worker and a separate storage namespace; this does not complete production save integration.
+
+## Playable prototype milestone
+
+The [combat lab](combat-lab.md) now connects worker combat, replaceable renderers, controls and checkpoint storage in an isolated page. Its JSON configuration and explicit visibility policy make stage 4 behavior reviewable end to end. This remains test balance; production content, progression and legacy-save integration are still outstanding.

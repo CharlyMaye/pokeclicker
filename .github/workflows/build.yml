@@ -21,6 +21,7 @@ jobs:
     - run: npm run test:refactor
     - run: npm run build:ecs
     - run: npm run test:worker-bundle
+    - run: npm run test:lab
     - run: gulp public
     - run: gulp copyWebsite
     - run: node tools/check-published-config.cjs docs

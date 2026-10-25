@@ -205,7 +205,8 @@ gulp.task('browserSync', () => {
     gulp.watch(srcs.assets, gulp.series('assets'));
     gulp.watch(srcs.locales, gulp.series('locales'));
     gulp.watch(srcs.scripts, gulp.series('scripts'));
-    gulp.watch(['src/contracts/**/*', 'src/simulation/**/*.ts', 'src/runtime/worker/**/*.ts', 'src/runtime/combat/**/*.ts'], gulp.series('ecs-worker'));
+    gulp.watch(['src/contracts/**/*', 'src/simulation/**/*.ts', 'src/runtime/worker/**/*.ts', 'src/runtime/combat/**/*.ts', 'src/runtime/persistence/**/*.ts'], gulp.series('ecs-worker', 'ecs-lab'));
+    gulp.watch(['src/client/**/*.ts', 'src/runtime/lab/**/*.ts', 'src/runtime/configuration/**/*', 'src/runtime/scheduling/**/*.ts', 'public/config/lab.json'], gulp.series('ecs-lab'));
     gulp.watch(srcs.styles, gulp.series('styles'));
 });
 
@@ -301,6 +302,10 @@ gulp.task('ecs-worker', () => gulp.src('src/runtime/worker/combat.worker.ts')
     .pipe(gulpWebpack(require('./webpack.ecs.config.cjs'), webpack))
     .pipe(gulp.dest('build/ecs')));
 
+gulp.task('ecs-lab', () => gulp.src('src/runtime/lab/browser.ts')
+    .pipe(gulpWebpack(require('./webpack.lab.config.cjs'), webpack))
+    .pipe(gulp.dest('build/ecs')));
+
 gulp.task('styles', () => gulp.src(srcs.styles)
     .pipe(less())
     .pipe(concat('styles.min.css'))
@@ -326,7 +331,7 @@ gulp.task('cname', (done) => {
 });
 
 gulp.task('build', done => {
-    gulp.series('public', 'copy', 'assets', 'locales', 'compile-html', 'scripts', 'ecs-worker', 'styles')(done);
+    gulp.series('public', 'copy', 'assets', 'locales', 'compile-html', 'scripts', 'ecs-worker', 'ecs-lab', 'styles')(done);
 });
 
 gulp.task('website', done => {

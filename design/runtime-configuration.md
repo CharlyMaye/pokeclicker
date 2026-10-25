@@ -4,7 +4,7 @@ This slice extends the [combat baseline](combat-baseline.md) with the configurat
 
 ## One validation boundary
 
-The JSON schemas remain the source of truth. `npm run generate:config` generates TypeScript declarations, standalone Ajv validators and a release descriptor. `npm run check:config-generated` compares deterministic output with the committed files and fails on schema, settings or generated-file drift. Normal builds perform this check before publishing configuration.
+For core combat and simulation settings, the JSON schemas remain the source of truth. `npm run generate:config` generates TypeScript declarations, standalone Ajv validators and a release descriptor. `npm run check:config-generated` compares deterministic output with the committed files and fails on schema, settings or generated-file drift. Normal builds perform this check before publishing configuration.
 
 `src/contracts/configuration.js` applies the generated schema validators and the cross-file timing rule once, for both build tooling and runtime loading. This small CommonJS module is JavaScript with checked JSDoc so Node build tools can consume it directly; strict TypeScript checks its implementation and its generated type guards. Its return value is a detached, frozen `Configuration`. The two current schemas contain scalar fields only; adding nested settings requires extending the copy/freeze policy and its tests.
 
@@ -16,7 +16,7 @@ The generated release descriptor contains SHA-256 digests of the exact JSON byte
 
 Gulp publishes:
 
-- `configuration/<version>/combat.json` and `simulation.json`: immutable-by-name assets used by the new loader.
+- `configuration/<version>/combat.json`, `simulation.json` and `lab.json`: immutable-by-name assets used by the new loader.
 - `configuration/manifest.json`: the release descriptor, for diagnostics and inspection.
 - `config/*.json`: the original readable baseline paths retained by the preceding PR.
 
@@ -43,3 +43,7 @@ Errors have a `code`, failing `file` and contextual message. Codes distinguish i
 - The publication check verifies both the manifest and the bytes served at canonical and versioned paths.
 
 Next stage 1 work: save fixtures and simulation command/snapshot contracts, followed by the headless combat implementation. Connect this loader at the new host's startup boundary when that host exists.
+
+## Lab assembly document
+
+The [playable lab](combat-lab.md) uses `loadLabConfiguration` to load all three pinned documents within one startup budget. The core `loadConfiguration` API still returns only combat and simulation settings. Lab configuration uses one shared strict TypeScript parser at build time and runtime, composing the existing scenario and label validators. The generated release descriptor includes its exact-byte digest. The bootstrap bundle embeds the required deadline and loading/error text from the same JSON; this is not a fallback for missing or invalid downloaded settings.
