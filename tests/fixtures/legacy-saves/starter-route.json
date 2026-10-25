@@ -1,0 +1,79 @@
+{
+  "player": {
+    "_route": 1,
+    "_region": 0,
+    "_subregion": 0,
+    "_townName": "Pallet Town",
+    "_itemList": {},
+    "_itemMultipliers": {},
+    "_lastSeen": 1690000100000,
+    "_timeTraveller": false,
+    "_origins": [
+      "https://example.invalid"
+    ],
+    "effectList": {},
+    "highestRegion": 0,
+    "highestSubRegion": 0,
+    "regionStarters": [
+      0,
+      -1,
+      -1,
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    "trainerId": "000001",
+    "_createdTime": 1690000000000
+  },
+  "save": {
+    "wallet": {
+      "currencies": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "party": {
+      "caughtPokemon": [
+        {
+          "id": 1,
+          "2": {
+            "0": 0,
+            "1": 0,
+            "2": 0
+          }
+        }
+      ]
+    },
+    "pokeballs": {
+      "pokeballs": [
+        25,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "update": {
+      "version": "0.10.26"
+    },
+    "achievements": []
+  },
+  "settings": {}
+}
