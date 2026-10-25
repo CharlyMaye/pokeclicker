@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.runtime.json",
+  "compilerOptions": { "lib": ["ES2020", "WebWorker"] },
+  "include": ["src/runtime/worker/combat.worker.ts"],
+  "exclude": []
+}

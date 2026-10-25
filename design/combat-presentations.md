@@ -36,3 +36,5 @@ DOM integration tests cover waiting, fighting, capture and idle displays; zero-t
 Tests also run the real ECS host and replace DOM with Knockout, and Knockout with DOM, during an active capture. They compare the final snapshots, progression, event stream and command outcomes against a run without rendering, at different frame rates. Delayed frames from the disposed presentation cannot update its replacement.
 
 This establishes concrete renderer substitution against the current prototype engine. Production catalogs and translations, input controls, complete progression compatibility, actual worker execution, persistence, offline accounting and live activation remain separate integration work. The tests exercise DOM behavior; they are not a browser screenshot or visual-design approval.
+
+The [worker proxy](worker-combat.md) also implements the snapshot-source interface. Replacing a renderer does not recreate its worker, acknowledge its event delivery or reset its combat clock.

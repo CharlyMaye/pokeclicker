@@ -17,6 +17,8 @@ Use English for code identifiers, comments, technical documentation, commit mess
 
 Keep unfinished work in draft PRs. Before marking a PR ready for review, inspect its final diff and verify the relevant checks on its latest commit. Tell the user what changed, which checks passed, what needs their attention and which branch will receive the changes.
 
+Prefer larger, coherent feature PRs that include their contracts, implementation, build integration, tests and documentation. Avoid requiring a separate merge for each internal layer. Keep unrelated migrations separate so the combined behavior remains reviewable.
+
 The user reviews the proposal and decides whether to merge it. A passing CI run supports that decision but does not replace the review. After a material update to a PR, reassess readiness and identify what needs another review.
 
 ## Branch organization
@@ -162,7 +164,7 @@ Version code and data together. A version manifest and versioned or content-hash
 | 2. Headless ECS combat | One representative route, automatic and click attacks, defeat, rewards, capture and the next opponent; controlled time and RNG. | Reproducible expected outcomes checked against stage 1 scenarios, including timing boundaries and indirect combat effects. |
 | 3. Two presentations of one engine | A Knockout bridge and a minimal diagnostic DOM display consuming the same contracts. | Renderer replacement without engine changes; identical outcomes without rendering and at different display rates. |
 | 4. Worker and game integration | Actual worker execution, command translation, save import/export and bridges to historical features. | No double ticks, duplicate rewards or processing after shutdown; covered cases include hidden tabs, resuming, saving and late messages. |
-| 5. Feature expansion | Other battles, wallet/progression, farming, breeding and remaining features through small PRs. | One authority per piece of state, regression scenarios and removal of obsolete legacy code at each stage. |
+| 5. Feature expansion | Other battles, wallet/progression, farming, breeding and remaining features through coherent feature PRs. | One authority per piece of state, regression scenarios and removal of obsolete legacy code at each stage. |
 
 During migration, each feature has a single state owner. If ECS combat emits a reward still applied by the historical wallet, the bridge records its identifier and applies it once. Corresponding historical systems must not continue mutating that combat. Inventory effects on statistics, quests, breeding and items before enabling the new route.
 
@@ -180,3 +182,7 @@ Activation is controlled by an explicit configuration option. Tests use syntheti
 - [Game Loop — Robert Nystrom](https://gameprogrammingpatterns.com/game-loop.html), on separating game progression from rendering frequency.
 - [requestAnimationFrame — MDN](https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame), on refresh timing and suspension in background tabs.
 - [JSON Schema: objects, required fields and additional properties](https://json-schema.org/understanding-json-schema/reference/object).
+
+## Worker execution milestone
+
+The [worker runtime](worker-combat.md) now executes the existing route ECS in a dedicated worker, with bounded acknowledged delivery, an asynchronous input/lifecycle proxy, a browser asset and compiled-bundle tests. This completes the execution boundary within stage 4, not that entire stage: production content resolution, indirect progression bridges, persistence, offline/visibility policy and live activation remain outstanding.

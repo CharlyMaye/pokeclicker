@@ -6,5 +6,6 @@
     "resolveJsonModule": true,
     "esModuleInterop": true
   },
-  "include": ["src/contracts/configuration.js", "src/contracts/**/*.ts", "src/runtime/**/*.ts"]
+  "include": ["src/contracts/configuration.js", "src/contracts/**/*.ts", "src/runtime/**/*.ts"],
+  "exclude": ["src/runtime/worker/combat.worker.ts"]
 }
