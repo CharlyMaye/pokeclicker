@@ -1,0 +1,99 @@
+{
+  "player": {
+    "_route": 29,
+    "_region": 1,
+    "_subregion": 0,
+    "_townName": "New Bark Town",
+    "_itemList": {},
+    "_itemMultipliers": {},
+    "_lastSeen": 1690000100000,
+    "_timeTraveller": false,
+    "_origins": [
+      "https://example.invalid"
+    ],
+    "effectList": {},
+    "highestRegion": 1,
+    "highestSubRegion": 0,
+    "regionStarters": [
+      0,
+      1,
+      -1,
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    "trainerId": "000001",
+    "_createdTime": 1690000000000
+  },
+  "save": {
+    "wallet": {
+      "currencies": [
+        12345,
+        7,
+        250,
+        2,
+        0,
+        0,
+        0
+      ]
+    },
+    "party": {
+      "caughtPokemon": [
+        {
+          "id": 1,
+          "0": 13,
+          "1": 6,
+          "2": {
+            "0": 2,
+            "1": 1,
+            "2": 0
+          },
+          "3": 1234,
+          "5": true,
+          "6": [
+            2
+          ],
+          "9": 20,
+          "13": "Éclair ⚡ 100%",
+          "14": 2,
+          "15": true
+        },
+        {
+          "id": 19.01,
+          "2": {
+            "0": 0,
+            "1": 0,
+            "2": 0
+          },
+          "3": 100
+        }
+      ]
+    },
+    "pokeballs": {
+      "pokeballs": [
+        12,
+        4,
+        2,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "update": {
+      "version": "0.10.26"
+    },
+    "achievements": []
+  },
+  "settings": {}
+}
