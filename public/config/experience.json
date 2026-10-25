@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "routeLevelScale": 20,
+  "routeLevelExponentDivisor": 2.25,
+  "experienceDivisor": 9,
+  "trainerMultiplier": 1.5
+}

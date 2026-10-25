@@ -1,25 +1,29 @@
 {
-  "version": "ef9525cfe85c384e7734b1fbd77d5b275e627c9281c783bc3144a100a9d9889b",
+  "version": "73075824d7814b542f8df45e445e4e3066d96908ddd56968e2bbefcd7ca6a4f1",
   "files": {
     "combat": {
-      "path": "configuration/ef9525cfe85c384e7734b1fbd77d5b275e627c9281c783bc3144a100a9d9889b/combat.json",
+      "path": "configuration/73075824d7814b542f8df45e445e4e3066d96908ddd56968e2bbefcd7ca6a4f1/combat.json",
       "sha256": "58b0dcf173f18343b9f673a6829804dc7af9600df2d71b4bbfdf98dd25d179fe"
     },
     "simulation": {
-      "path": "configuration/ef9525cfe85c384e7734b1fbd77d5b275e627c9281c783bc3144a100a9d9889b/simulation.json",
+      "path": "configuration/73075824d7814b542f8df45e445e4e3066d96908ddd56968e2bbefcd7ca6a4f1/simulation.json",
       "sha256": "be1048393c473f8c6b67e17cc26b8cc32a6612dae670f4ccc12b386bd8817147"
     },
     "lab": {
-      "path": "configuration/ef9525cfe85c384e7734b1fbd77d5b275e627c9281c783bc3144a100a9d9889b/lab.json",
+      "path": "configuration/73075824d7814b542f8df45e445e4e3066d96908ddd56968e2bbefcd7ca6a4f1/lab.json",
       "sha256": "d97898c4eb25f79f373e9f6e6e4b4888d82f27df059533959a9376b0c7a5d4a6"
     },
     "route-health": {
-      "path": "configuration/ef9525cfe85c384e7734b1fbd77d5b275e627c9281c783bc3144a100a9d9889b/route-health.json",
+      "path": "configuration/73075824d7814b542f8df45e445e4e3066d96908ddd56968e2bbefcd7ca6a4f1/route-health.json",
       "sha256": "f6ac4c36d14d2061b6257ee0ad450708b4f6c8c187120531fb89727195d27c5a"
     },
     "encounter-rules": {
-      "path": "configuration/ef9525cfe85c384e7734b1fbd77d5b275e627c9281c783bc3144a100a9d9889b/encounter-rules.json",
+      "path": "configuration/73075824d7814b542f8df45e445e4e3066d96908ddd56968e2bbefcd7ca6a4f1/encounter-rules.json",
       "sha256": "c05ee3477a79195c24f09e739faf2e44efd49267fd9d577392fd8fe12a3a0e9e"
+    },
+    "experience": {
+      "path": "configuration/73075824d7814b542f8df45e445e4e3066d96908ddd56968e2bbefcd7ca6a4f1/experience.json",
+      "sha256": "b02346e55852970df5583aad0edc541435f28b96d0915680003f4286ab38593a"
     }
   }
 }
