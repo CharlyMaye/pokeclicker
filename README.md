@@ -57,7 +57,20 @@ npm start
 Click the [Web Preview](https://cloud.google.com/shell/docs/using-web-preview) Button and select port `3001` from the displayed menu.<br/>
 Cloud Shell opens the preview URL on its proxy service in a new browser window.
 
-## Deploying a new version to Github Pages
+## Deploying this fork with GitHub Actions
+
+The `Deploy GitHub Pages` workflow tests, builds, and publishes `develop` on each push.
+It can also be started manually from the **Actions** tab using **Run workflow** on `develop`.
+
+One-time setup:
+1. If Actions are disabled on this fork, enable them from the **Actions** tab.
+2. Under **Settings → Pages → Build and deployment**, set **Source** to **GitHub Actions**.
+3. Run the `Deploy GitHub Pages` workflow. The deployment URL appears in the workflow's `github-pages` environment.
+
+For this fork, the default site URL is https://charlymaye.github.io/pokeclicker/.
+The workflow uses GitHub's built-in token; no personal access token or custom domain is required.
+
+## Deploying a new version to Github Pages manually
 > [!IMPORTANT]
 > Before deploying, check that the game compiles and starts up without errors.
 
