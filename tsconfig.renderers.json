@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.client.json",
+  "compilerOptions": { "lib": ["ES2020", "DOM"] },
+  "include": ["src/contracts/configuration.js", "src/contracts/**/*.ts", "src/client/**/*.ts"]
+}

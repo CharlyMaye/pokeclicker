@@ -22,12 +22,13 @@
     "validate:config": "node tools/configuration.cjs",
     "test:config": "node --test tests/configuration/*.test.cjs",
     "test:baseline": "vitest run --config vitest.baseline.config.js",
-    "test:refactor": "npm run check:config-generated && npm run typecheck:refactor && npm run validate:config && npm run test:config && npm run test:runtime && npm run test:simulation && npm run test:baseline",
+    "test:refactor": "npm run check:config-generated && npm run typecheck:refactor && npm run validate:config && npm run test:config && npm run test:runtime && npm run test:simulation && npm run test:client && npm run test:baseline",
     "generate:config": "node tools/generate-configuration.cjs",
     "check:config-generated": "node tools/generate-configuration.cjs --check",
-    "typecheck:refactor": "tsc -p tsconfig.contracts.json && tsc -p tsconfig.runtime.json && tsc -p tsconfig.simulation.json && tsc -p tsconfig.client.json",
+    "typecheck:refactor": "tsc -p tsconfig.contracts.json && tsc -p tsconfig.runtime.json && tsc -p tsconfig.simulation.json && tsc -p tsconfig.client.json && tsc -p tsconfig.renderers.json",
     "test:runtime": "vitest run --config vitest.runtime.config.js",
-    "test:simulation": "vitest run --config vitest.simulation.config.js"
+    "test:simulation": "vitest run --config vitest.simulation.config.js",
+    "test:client": "vitest run --config vitest.client.config.js"
   },
   "repository": {
     "type": "git",

@@ -1,0 +1,15 @@
+{
+  "title": "Route combat",
+  "region": "Region",
+  "route": "Route",
+  "status": "Status",
+  "opponent": "Pokemon ID",
+  "health": "Health",
+  "capture": "Capture remaining",
+  "waiting": "Waiting for a snapshot",
+  "idle": "Idle",
+  "fighting": "Fighting",
+  "capturing": "Capturing",
+  "unavailable": "Unavailable",
+  "milliseconds": "ms"
+}
