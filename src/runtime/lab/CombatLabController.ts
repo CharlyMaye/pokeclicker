@@ -25,6 +25,9 @@ export interface LabStore {
     read(): StoredCheckpoint | null;
     write(checkpoint: HostCheckpoint, expectedRevision: string | null): Promise<StoredCheckpoint>;
     recoverBackup(): Promise<StoredCheckpoint>;
+    previewImport(text: string): HostCheckpoint;
+    serializeCheckpoint(value: HostCheckpoint): string;
+    importText(text: string, expectedRevision: string | null): Promise<StoredCheckpoint>;
 }
 export interface LabControllerOptions {
     readonly store: LabStore;
@@ -40,6 +43,7 @@ export interface LabControllerOptions {
 /** Owns RPC arbitration and session replacement; rendering never owns output acknowledgment. */
 export class CombatLabController {
     private host: LabHost | null = null;
+    private preparedHost: LabHost | null = null;
     private display: PresentationLoop<CombatFrame> | null = null;
     private revision: string | null = null;
     private sessionId = '';
@@ -130,6 +134,35 @@ export class CombatLabController {
             await this.replace(await this.options.store.recoverBackup());
         });
     }
+    previewImport(text: string): HostCheckpoint {
+        if (this.disposed) {
+            throw new Error('Lab is disposed');
+        }
+        return this.options.store.previewImport(text);
+    }
+    exportCheckpoint(): Promise<string> {
+        return this.run(async () => this.options.store.serializeCheckpoint(await this.settle()));
+    }
+    importCheckpoint(text: string): Promise<void> {
+        return this.run(async () => {
+            const checkpoint = this.options.store.previewImport(text);
+            await this.stopForReplacement();
+            // Prepare the stopped worker before committing storage. Startup failures preserve the save.
+            const candidate = await this.prepareHost(checkpoint);
+            let committed = false;
+            try {
+                const record = await this.options.store.importText(text, this.revision);
+                committed = true;
+                this.activate(candidate, record.revision);
+            } catch (error) {
+                candidate.host.dispose(); this.preparedHost = null;
+                if (committed) {
+                    throw new Error(`Checkpoint imported into storage, but the session could not be activated. Reload saved progress to retry. ${this.asError(error).message}`);
+                }
+                throw error;
+            }
+        });
+    }
     switchRenderer(kind: RendererKind): Promise<void> {
         return this.run(async () => {
             if (!['dom', 'knockout'].includes(kind)) {
@@ -162,7 +195,7 @@ export class CombatLabController {
             return;
         }
         this.disposed = true;
-        this.display?.dispose(); this.host?.dispose();
+        this.display?.dispose(); this.host?.dispose(); this.preparedHost?.dispose();
     }
 
     private notify(): void {
@@ -186,7 +219,7 @@ export class CombatLabController {
         }
         return this.host;
     }
-    private async run(operation: () => Promise<void>, background = false): Promise<void> {
+    private async run<T>(operation: () => Promise<T>, background = false): Promise<T> {
         if (this.disposed) {
             throw new Error('Lab is disposed');
         }
@@ -199,7 +232,7 @@ export class CombatLabController {
         }
         this.notify();
         try {
-            await operation();
+            return await operation();
         } catch (error) {
             this.error = this.asError(error);
             if (background) {
@@ -272,9 +305,9 @@ export class CombatLabController {
             display.dispose(); throw error;
         }
     }
-    private async replace(record: StoredCheckpoint | null): Promise<void> {
+    private async prepareHost(checkpoint?: HostCheckpoint): Promise<{ sessionId: string; host: LabHost }> {
         const sessionId = this.options.newSessionId();
-        const candidate = await this.options.createHost(sessionId, record?.checkpoint, () => {
+        const candidate = await this.options.createHost(sessionId, checkpoint, () => {
             if (this.sessionId === sessionId && !this.disposed) {
                 this.outputRequested = true; this.pump();
             }
@@ -286,14 +319,30 @@ export class CombatLabController {
         if (this.disposed) {
             candidate.dispose(); throw new Error('Lab is disposed');
         }
-        let next: PresentationLoop<CombatFrame>;
-        try {
-            next = this.createDisplay(candidate, sessionId, this.kind);
-        } catch (error) {
-            candidate.dispose(); throw error;
+        if (candidate.fault || candidate.state !== 'stopped') {
+            candidate.dispose(); throw candidate.fault ?? new Error('Replacement worker must be stopped');
         }
+        this.preparedHost = candidate;
+        return { sessionId, host: candidate };
+    }
+    private activate(candidate: { sessionId: string; host: LabHost }, revision: string | null): void {
+        if (this.disposed) {
+            throw new Error('Lab is disposed');
+        }
+        if (candidate.host.fault || candidate.host.state !== 'stopped') {
+            throw candidate.host.fault ?? new Error('Replacement worker must be stopped');
+        }
+        const next = this.createDisplay(candidate.host, candidate.sessionId, this.kind);
         this.display?.dispose(); this.host?.dispose();
-        this.host = candidate; this.display = next; this.sessionId = sessionId;
-        this.revision = record?.revision ?? null; this.outputRequested = false;
+        this.host = candidate.host; this.display = next; this.sessionId = candidate.sessionId;
+        this.revision = revision; this.outputRequested = false; this.preparedHost = null;
+    }
+    private async replace(record: StoredCheckpoint | null): Promise<void> {
+        const candidate = await this.prepareHost(record?.checkpoint);
+        try {
+            this.activate(candidate, record?.revision ?? null);
+        } catch (error) {
+            candidate.host.dispose(); this.preparedHost = null; throw error;
+        }
     }
 }

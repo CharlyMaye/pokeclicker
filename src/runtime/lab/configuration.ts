@@ -7,6 +7,7 @@ export type RendererKind = 'dom' | 'knockout';
 export const LAB_TEXT_FIELDS = [
     'title', 'intro', 'start', 'pause', 'attack', 'save', 'load', 'recover', 'renderer', 'route', 'dom', 'knockout',
     'loading', 'busy', 'running', 'stopped', 'saved', 'ready', 'failed', 'noSave', 'confirmLoad', 'confirmRecover', 'confirm', 'cancel', 'back',
+    'fileHeading', 'export', 'download', 'chooseFile', 'importHelp', 'confirmImport', 'exportReady', 'imported', 'selectedFile',
     'status', 'hidden', 'storageNotice', 'failedStartup', 'rendererNotice', 'unsupported',
 ] as const;
 export type LabText = Readonly<Record<typeof LAB_TEXT_FIELDS[number], string>>;
@@ -14,11 +15,12 @@ const COLOR_FIELDS = ['background', 'surface', 'text', 'muted', 'accent', 'outli
 const SIZE_FIELDS = ['gapRem', 'paddingRem', 'radiusRem', 'panelMinRem', 'maxWidthRem', 'fontSizeRem', 'lineHeight'] as const;
 export type LabTheme = Readonly<Record<typeof COLOR_FIELDS[number], string> & Record<typeof SIZE_FIELDS[number], number>>;
 export interface LabConfiguration {
-    readonly schemaVersion: 2;
+    readonly schemaVersion: 3;
     readonly startupTimeoutMs: number;
     readonly requestTimeoutMs: number;
     readonly maxCheckpointBytes: number;
     readonly saveSlot: string;
+    readonly checkpointFilename: string;
     readonly seed: number;
     readonly initialRenderer: RendererKind;
     readonly scenario: CombatScenario;
@@ -32,11 +34,14 @@ export interface LabConfiguration {
 export function parseLabConfiguration(value: unknown): LabConfiguration {
     const data = dataObject(value, [
         'schemaVersion', 'startupTimeoutMs', 'requestTimeoutMs', 'maxCheckpointBytes', 'saveSlot', 'seed',
-        'initialRenderer', 'scenario', 'combatLabels', 'progressLabels', 'text', 'theme',
+        'checkpointFilename', 'initialRenderer', 'scenario', 'combatLabels', 'progressLabels', 'text', 'theme',
     ], 'lab configuration');
-    if (data.schemaVersion !== 2 || !['dom', 'knockout'].includes(data.initialRenderer as string)
+    if (data.schemaVersion !== 3 || !['dom', 'knockout'].includes(data.initialRenderer as string)
         || typeof data.saveSlot !== 'string' || !/^[A-Za-z0-9_-]{1,64}$/.test(data.saveSlot)) {
         throw new Error('Unsupported lab version, renderer or save slot');
+    }
+    if (typeof data.checkpointFilename !== 'string' || !/^[A-Za-z0-9_-]+\.json$/.test(data.checkpointFilename)) {
+        throw new Error('Checkpoint filename must be a portable JSON filename');
     }
     const startupTimeoutMs = safeInteger(data.startupTimeoutMs, 'startupTimeoutMs', 1);
     const requestTimeoutMs = safeInteger(data.requestTimeoutMs, 'requestTimeoutMs', 1);
@@ -63,8 +68,8 @@ export function parseLabConfiguration(value: unknown): LabConfiguration {
             throw new Error(`Lab layout ${key} must be finite and positive`);
         }
     }
-    return Object.freeze({ schemaVersion: 2, startupTimeoutMs, requestTimeoutMs,
-        maxCheckpointBytes: safeInteger(data.maxCheckpointBytes, 'maxCheckpointBytes', 1), saveSlot: data.saveSlot,
+    return Object.freeze({ schemaVersion: 3, startupTimeoutMs, requestTimeoutMs,
+        maxCheckpointBytes: safeInteger(data.maxCheckpointBytes, 'maxCheckpointBytes', 1), saveSlot: data.saveSlot, checkpointFilename: data.checkpointFilename,
         seed: validateRandomState(data.seed), initialRenderer: data.initialRenderer as RendererKind,
         scenario: validateScenario(data.scenario), combatLabels: new CombatViewModel('lab-label-validation', data.combatLabels).labels,
         progressLabels: parseProgressLabels(data.progressLabels), text, theme: Object.freeze({ ...themeData }) as LabTheme });

@@ -229,3 +229,23 @@ describe('checkpoint storage and recovery', () => {
         expect(request).toHaveBeenCalledWith(`pokeclicker:ecs:checkpoints:v1:${policy.slot}`, { mode: 'exclusive' }, expect.any(Function));
     });
 });
+
+describe('portable checkpoint validation without storage mutation', () => {
+    it('previews and serializes detached checkpoint data without reading storage or acquiring a lock', () => {
+        const getItem = vi.fn(() => { throw new Error('must not read'); }), setItem = vi.fn();
+        const run = vi.fn(() => { throw new Error('must not lock'); });
+        const store = new CheckpointStore({ getItem, setItem }, { run }, { ...policy, configuration, scenario });
+        const checkpoint = saved(), text = store.serializeCheckpoint(checkpoint), preview = store.previewImport(text);
+        expect(preview).toEqual(checkpoint); expect(Object.isFrozen(preview.combat.progress)).toBe(true);
+        expect(getItem).not.toHaveBeenCalled(); expect(setItem).not.toHaveBeenCalled(); expect(run).not.toHaveBeenCalled();
+    });
+    it('applies the same configured byte and rule bounds to preview and unsaved export', () => {
+        const store = new CheckpointStore({ getItem: () => null, setItem() {} }, { run: async (_name, operation) => operation() }, { ...policy, maxBytes: 10, configuration, scenario });
+        expect(() => store.serializeCheckpoint(saved())).toThrow(/byte limit/);
+        expect(() => store.previewImport(' '.repeat(11))).toThrow(/byte limit/);
+        const full = new CheckpointStore({ getItem: () => null, setItem() {} }, { run: async (_name, operation) => operation() }, { ...policy, configuration, scenario });
+        const incompatible = structuredClone(saved()); incompatible.combat.scenario.clickAttackDamage++;
+        expect(() => full.previewImport(JSON.stringify(incompatible))).toThrow(/incompatible/);
+        expect(() => full.serializeCheckpoint(incompatible)).toThrow(/incompatible/);
+    });
+});

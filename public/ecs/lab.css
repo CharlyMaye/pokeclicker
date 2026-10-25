@@ -51,3 +51,8 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 .ecs-progress th, .ecs-progress td { text-align: start; padding: var(--gap-rem); border-bottom: thin solid var(--outline); }
 .ecs-progress caption { text-align: start; color: var(--accent); }
 .ecs-progress { overflow-x: auto; }
+
+.ecs-checkpoint-files { background: var(--surface); padding: var(--padding-rem); border-radius: var(--radius-rem); }
+.ecs-checkpoint-files > * { margin-block: var(--gap-rem); }
+.ecs-checkpoint-files a { display: block; }
+.ecs-checkpoint-files input { font: inherit; max-width: 100%; }

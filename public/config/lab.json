@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "startupTimeoutMs": 10000,
   "requestTimeoutMs": 5000,
   "maxCheckpointBytes": 1048576,
@@ -158,7 +158,16 @@
     "storageNotice": "Saving pauses combat. Reload or restore only when you want to replace this session.",
     "failedStartup": "The combat lab could not start. Check the details below.",
     "rendererNotice": "Changing the presentation preserves the active combat session.",
-    "unsupported": "This browser cannot create the required combat worker."
+    "unsupported": "This browser cannot create the required combat worker.",
+    "fileHeading": "Portable checkpoints",
+    "export": "Export and pause",
+    "download": "Download prepared checkpoint",
+    "chooseFile": "Preview checkpoint file",
+    "importHelp": "Only compatible ECS checkpoint files are accepted. Previewing does not replace progress. Cancel the preview to return to the current session. Downloads are snapshots and do not update automatically.",
+    "confirmImport": "Import this checkpoint? This replaces the saved slot and unsaved session progress. The previous saved slot is retained as a backup.",
+    "exportReady": "Checkpoint prepared. Use the download link to save the file. Browser storage has not been changed.",
+    "imported": "Checkpoint imported. Combat is paused.",
+    "selectedFile": "Selected file"
   },
   "theme": {
     "background": "#101827",
@@ -193,5 +202,6 @@
     "waiting": "Waiting for progress",
     "emptyCaptures": "No Pokémon captured yet.",
     "emptyRoutes": "No route defeats yet."
-  }
+  },
+  "checkpointFilename": "pokeclicker-ecs-checkpoint.json"
 }

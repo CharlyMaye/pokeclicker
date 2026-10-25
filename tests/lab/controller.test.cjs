@@ -6,7 +6,7 @@ const flush = () => new Promise(resolve => setImmediate(resolve));
 function setup(overrides = {}) {
     const hosts = [], displays = [], writes = [];
     let sequence = 0, record = null;
-    const store = { read: () => record, async write(checkpoint, revision) { writes.push({ checkpoint, revision }); return record = { checkpoint, revision: 'saved' }; }, async recoverBackup() { return record; } };
+    const store = { read: () => record, async write(checkpoint, revision) { writes.push({ checkpoint, revision }); return record = { checkpoint, revision: 'saved' }; }, async recoverBackup() { return record; }, previewImport: text => JSON.parse(text), serializeCheckpoint: value => JSON.stringify(value), async importText(text, revision) { writes.push({ text, revision }); return record = { checkpoint: JSON.parse(text), revision: 'imported' }; } };
     const controller = new CombatLabController({ store, frames: { request: () => () => {} }, initialRenderer: 'dom', maxPendingOutputs: 3,
         newSessionId: () => `lab-${++sequence}`, changed() {},
         async createHost(id, checkpoint, output, fault) {
@@ -86,4 +86,52 @@ test('checkpoint barrier drains batches posted after acknowledge replies', async
     const x = setup(); await x.controller.initialize(); const host = x.hosts[0]; let attempts = 0;
     host.checkpoint = async () => { if (++attempts === 1) { host.pendingOutput = { snapshot: { sequence: 2 } }; throw new Error('pending'); } return { saved: true }; };
     await x.controller.save(); assert.equal(attempts, 2); assert.deepEqual(host.acknowledged, [2]); x.controller.dispose();
+});
+
+test('export pauses and drains live state without writing the saved slot', async () => {
+    const x = setup(); await x.controller.initialize(); await x.controller.start();
+    x.hosts[0].pendingOutput = { snapshot: { sequence: 2 } };
+    assert.deepEqual(JSON.parse(await x.controller.exportCheckpoint()), { host: 'lab-1' });
+    assert.equal(x.controller.state, 'stopped'); assert.deepEqual(x.hosts[0].acknowledged, [2]); assert.equal(x.writes.length, 0); x.controller.dispose();
+});
+test('preview and invalid import do not pause or replace the session or saved slot', async () => {
+    const x = setup(); await x.controller.initialize(); await x.controller.start();
+    assert.deepEqual(x.controller.previewImport('{"saved":true}'), { saved: true });
+    await assert.rejects(x.controller.importCheckpoint('{broken')); assert.equal(x.controller.state, 'running'); assert.equal(x.hosts.length, 1); assert.equal(x.writes.length, 0); x.controller.dispose();
+});
+test('confirmed import prepares a stopped worker, commits expected revision, then replaces the session', async () => {
+    const x = setup(); await x.controller.initialize(); await x.controller.save(); await x.controller.start();
+    const imported = '{"saved":true}'; const write = x.store.importText;
+    x.store.importText = async (...args) => { assert.equal(x.hosts.length, 2); assert.equal(x.hosts[1].state, 'stopped'); assert.equal(x.hosts[0].state, 'stopped'); return write(...args); };
+    await x.controller.importCheckpoint(imported);
+    assert.deepEqual(x.writes[1], { text: imported, revision: 'saved' }); assert.equal(x.hosts[0].state, 'disposed'); assert.equal(x.hosts[1].state, 'stopped');
+    await x.controller.save(); assert.equal(x.writes[2].revision, 'imported'); x.controller.dispose();
+});
+test('candidate startup failure prevents import storage writes', async () => {
+    const x = setup({ createHost: async () => { throw new Error('worker failed'); } });
+    await assert.rejects(x.controller.importCheckpoint('{}'), /worker failed/); assert.equal(x.writes.length, 0); x.controller.dispose();
+});
+test('revision conflict disposes the candidate and preserves the original paused session', async () => {
+    const x = setup(); await x.controller.initialize(); await x.controller.start();
+    x.store.importText = async () => { throw new Error('revision changed'); };
+    await assert.rejects(x.controller.importCheckpoint('{}'), /revision changed/);
+    assert.equal(x.hosts[0].state, 'stopped'); assert.equal(x.hosts[1].state, 'disposed'); assert.equal(x.displays[0].disposed, false); x.controller.dispose();
+});
+test('failure after import commit clearly reports saved data and preserves the prior paused view', async () => {
+    let calls = 0; const x = setup({ createRenderer() { if (++calls > 1) throw new Error('mount failed'); return { render() {}, dispose() {} }; } });
+    await x.controller.initialize(); await assert.rejects(x.controller.importCheckpoint('{}'), /imported into storage.*Reload saved progress/);
+    assert.equal(x.writes.length, 1); assert.equal(x.hosts[0].state, 'stopped'); assert.equal(x.hosts[1].state, 'disposed'); x.controller.dispose();
+});
+test('page teardown immediately terminates a prepared worker while a storage lock is pending', async () => {
+    const x = setup(); await x.controller.initialize(); let finish;
+    x.store.importText = () => new Promise(resolve => { finish = () => resolve({ checkpoint: {}, revision: 'imported' }); });
+    const pending = x.controller.importCheckpoint('{}'); await flush(); assert.equal(x.hosts.length, 2);
+    x.controller.dispose(); assert.equal(x.hosts[1].state, 'disposed'); finish();
+    await assert.rejects(pending, /imported into storage/); assert.equal(x.hosts[0].state, 'disposed');
+});
+test('candidate failure while committing does not activate a faulted session', async () => {
+    const x = setup(); await x.controller.initialize();
+    x.store.importText = async () => { x.hosts[1].fault = new Error('worker failed'); return { checkpoint: {}, revision: 'imported' }; };
+    await assert.rejects(x.controller.importCheckpoint('{}'), /imported into storage/);
+    assert.equal(x.hosts[0].state, 'stopped'); assert.equal(x.hosts[1].state, 'disposed'); x.controller.dispose();
 });

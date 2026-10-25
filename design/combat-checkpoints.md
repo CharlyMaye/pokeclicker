@@ -49,3 +49,7 @@ Host/worker tests cover fractional time and debt, stop/drain gating, resumed str
 The storage failure/coordination tests use injected ports; browser API selection is mocked. Real-browser quota/eviction, multi-tab UI behavior, production autosave, legacy import/export, offline policy and a single-authority bridge to historical progression still need integration checks before activation.
 
 Platform references: [Web Locks](https://www.w3.org/TR/web-locks/) and [Web Storage failure semantics](https://www.w3.org/TR/2021/SPSD-webstorage-20210128/).
+
+## Portable lab workflow
+
+The [portable checkpoint UI](portable-checkpoints.md) now uses storage-free `previewImport` and `serializeCheckpoint`, bounded strict UTF-8 file reading, explicit confirmation and prepared worker replacement. The existing import/recovery commit semantics and version-one checkpoint formats remain unchanged. Exporting live progress pauses the session without replacing the saved slot.
