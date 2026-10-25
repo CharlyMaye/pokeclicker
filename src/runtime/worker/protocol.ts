@@ -1,3 +1,4 @@
+import { HostCheckpoint, parseHostCheckpoint } from '../persistence/HostCheckpoint';
 import { COMBAT_PROTOCOL_VERSION, CombatCommand, CombatSnapshot, parseCombatCommand, parseCombatEvent, parseCombatSnapshot, validateSessionId } from '../../contracts/combat-protocol';
 import type { Configuration } from '../../contracts/configuration-types';
 import { validateConfiguration } from '../../contracts/configuration';
@@ -6,16 +7,17 @@ import { validateScenario, validateRandomState, safeInteger } from '../../simula
 import type { CombatScenario, CommandOutcome } from '../../simulation/combat/model';
 
 // Transport version is independent of the combat and configuration versions.
-export const WORKER_PROTOCOL_VERSION = 1;
+export const WORKER_PROTOCOL_VERSION = 2;
 export type CombatInput = Readonly<{ type: 'ClickAttack' }> | Readonly<{ type: 'ChangeRoute'; destination: { region: number; route: number } }>;
 export interface WorkerSession {
     readonly configuration: Configuration;
     readonly scenario: CombatScenario;
     readonly seed: number;
+    readonly checkpoint?: HostCheckpoint;
 }
 export type RequestPayload =
     | { readonly type: 'initialize'; readonly session: WorkerSession }
-    | { readonly type: 'start' | 'stop' }
+    | { readonly type: 'start' | 'stop' | 'checkpoint' }
     | { readonly type: 'input'; readonly input: CombatInput }
     | { readonly type: 'acknowledge'; readonly sequence: number };
 export interface WorkerRequest {
@@ -24,8 +26,16 @@ export interface WorkerRequest {
     readonly requestId: number;
     readonly payload: RequestPayload;
 }
+export interface WorkerCursors {
+    readonly commandSequence: number;
+    readonly commandAtMs: number;
+    readonly eventSequence: number;
+    readonly outcomeSequence: number;
+}
+
 export type WorkerResult =
-    | { readonly type: 'ready'; readonly snapshot: CombatSnapshot }
+    | { readonly type: 'ready'; readonly snapshot: CombatSnapshot; readonly cursors: WorkerCursors }
+    | { readonly type: 'checkpoint'; readonly checkpoint: HostCheckpoint }
     | { readonly type: 'accepted'; readonly command: CombatCommand }
     | { readonly type: 'done' }
     | { readonly type: 'rejected'; readonly message: string };
@@ -85,9 +95,13 @@ export function parseInput(value: unknown): CombatInput {
 }
 
 export function parseSession(value: unknown): WorkerSession {
-    const data = object(value, ['configuration', 'scenario', 'seed']);
-    const configuration = object(data.configuration, ['combat', 'simulation']);
-    return Object.freeze({ configuration: validateConfiguration({ combat: configuration.combat, simulation: configuration.simulation }), scenario: validateScenario(data.scenario), seed: validateRandomState(data.seed) });
+    const hasCheckpoint = !!value && Object.prototype.hasOwnProperty.call(value, 'checkpoint');
+    const data = object(value, ['configuration', 'scenario', 'seed', ...(hasCheckpoint ? ['checkpoint'] : [])]);
+    const config = object(data.configuration, ['combat', 'simulation']);
+    const configuration = validateConfiguration({ combat: config.combat, simulation: config.simulation });
+    const scenario = validateScenario(data.scenario);
+    return Object.freeze({ configuration, scenario, seed: validateRandomState(data.seed),
+        ...(hasCheckpoint ? { checkpoint: parseHostCheckpoint(data.checkpoint, configuration, scenario) } : {}) });
 }
 
 export function parseRequest(value: unknown, sessionId: string): WorkerRequest {
@@ -109,7 +123,7 @@ export function parseRequest(value: unknown, sessionId: string): WorkerRequest {
             const content = object(data.payload, ['type', 'sequence']);
             payload = { type, sequence: safeInteger(content.sequence, 'acknowledgment sequence', 1) }; break;
         }
-        case 'start': case 'stop':
+        case 'start': case 'stop': case 'checkpoint':
             object(data.payload, ['type']); payload = { type }; break;
         default: throw new Error('Unsupported worker request');
     }
@@ -120,13 +134,21 @@ function parseResult(value: unknown, sessionId: string): WorkerResult {
     const type = kind(value);
     switch (type) {
         case 'ready': {
-            const data = object(value, ['type', 'snapshot']);
+            const data = object(value, ['type', 'snapshot', 'cursors']);
             const snapshot = parseCombatSnapshot(data.snapshot);
-            if (snapshot.sessionId !== sessionId || snapshot.sequence !== 0 || snapshot.atMs !== 0) {
-                throw new Error('Worker initialization must return this session at time zero');
+            if (snapshot.sessionId !== sessionId) {
+                throw new Error('Worker initialization belongs to a foreign session');
             }
-            return Object.freeze({ type, snapshot });
+            const cursor = object(data.cursors, ['commandSequence', 'commandAtMs', 'eventSequence', 'outcomeSequence']);
+            const cursors = Object.freeze({ commandSequence: safeInteger(cursor.commandSequence, 'commandSequence'),
+                commandAtMs: safeInteger(cursor.commandAtMs, 'commandAtMs'), eventSequence: safeInteger(cursor.eventSequence, 'eventSequence'),
+                outcomeSequence: safeInteger(cursor.outcomeSequence, 'outcomeSequence') });
+            if (cursors.outcomeSequence > cursors.commandSequence || (!cursors.commandSequence && cursors.commandAtMs)) {
+                throw new Error('Invalid restored worker cursors');
+            }
+            return Object.freeze({ type, snapshot, cursors });
         }
+        case 'checkpoint': return Object.freeze({ type, checkpoint: parseHostCheckpoint(object(value, ['type', 'checkpoint']).checkpoint) });
         case 'accepted': {
             const data = object(value, ['type', 'command']);
             const command = parseCombatCommand(data.command);
