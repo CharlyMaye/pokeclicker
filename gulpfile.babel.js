@@ -205,6 +205,7 @@ gulp.task('browserSync', () => {
     gulp.watch(srcs.assets, gulp.series('assets'));
     gulp.watch(srcs.locales, gulp.series('locales'));
     gulp.watch(srcs.scripts, gulp.series('scripts'));
+    gulp.watch(['src/contracts/**/*', 'src/simulation/**/*.ts', 'src/runtime/worker/**/*.ts', 'src/runtime/combat/**/*.ts'], gulp.series('ecs-worker'));
     gulp.watch(srcs.styles, gulp.series('styles'));
 });
 
@@ -296,6 +297,10 @@ gulp.task('scripts', () => {
         });
 });
 
+gulp.task('ecs-worker', () => gulp.src('src/runtime/worker/combat.worker.ts')
+    .pipe(gulpWebpack(require('./webpack.ecs.config.cjs'), webpack))
+    .pipe(gulp.dest('build/ecs')));
+
 gulp.task('styles', () => gulp.src(srcs.styles)
     .pipe(less())
     .pipe(concat('styles.min.css'))
@@ -321,7 +326,7 @@ gulp.task('cname', (done) => {
 });
 
 gulp.task('build', done => {
-    gulp.series('public', 'copy', 'assets', 'locales', 'compile-html', 'scripts', 'styles')(done);
+    gulp.series('public', 'copy', 'assets', 'locales', 'compile-html', 'scripts', 'ecs-worker', 'styles')(done);
 });
 
 gulp.task('website', done => {

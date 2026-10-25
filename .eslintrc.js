@@ -26,6 +26,11 @@ module.exports = {
             parserOptions: { project: ['./tsconfig.runtime.json'] },
         },
         {
+            files: ['src/runtime/worker/combat.worker.ts'],
+            parserOptions: { project: ['./tsconfig.worker.json'] },
+            env: { browser: false, worker: true },
+        },
+        {
             files: ['src/contracts/**/*.js', 'src/contracts/**/*.ts'],
             parserOptions: { project: ['./tsconfig.contracts.json'] },
             env: { browser: false },

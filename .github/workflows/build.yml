@@ -19,6 +19,8 @@ jobs:
         node-version-file: package.json
     - run: npm ci
     - run: npm run test:refactor
+    - run: npm run build:ecs
+    - run: npm run test:worker-bundle
     - run: gulp public
     - run: gulp copyWebsite
     - run: node tools/check-published-config.cjs docs
