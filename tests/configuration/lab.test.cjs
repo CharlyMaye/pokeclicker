@@ -16,6 +16,9 @@ test('lab configuration detaches and freezes nested runtime, text, scenario and 
     assert.ok(Object.isFrozen(result.theme)); assert.ok(Object.isFrozen(result.text)); assert.ok(Object.isFrozen(result.scenario.routes[0].opponents[0]));
 });
 for (const [label, mutate] of [
+    ['obsolete lab version', value => { value.schemaVersion = 1; }],
+    ['missing progress labels', value => { delete value.progressLabels; }],
+    ['blank progress label', value => { value.progressLabels.money = ' '; }],
     ['missing policy', value => { delete value.requestTimeoutMs; }],
     ['unsupported renderer', value => { value.initialRenderer = 'html'; }],
     ['unknown fields', value => { value.unknown = 1; }],

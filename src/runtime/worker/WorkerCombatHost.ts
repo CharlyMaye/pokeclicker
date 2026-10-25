@@ -1,3 +1,5 @@
+import { verifySessionProgress, verifyProgressAdvance } from './progress';
+import { CombatFrame, CombatProgress, ProgressLimits, parseCombatProgress } from '../../contracts/combat-progress';
 import { HostCheckpoint, parseHostCheckpoint } from '../persistence/HostCheckpoint';
 import { sameData } from '../../simulation/combat/checkpoint';
 import { CombatCommand, CombatSnapshot, validateSessionId } from '../../contracts/combat-protocol';
@@ -31,7 +33,11 @@ export class WorkerCombatHost {
     private readonly session: WorkerSession;
     private readonly detach: () => void;
     private pending: PendingRequest | null = null;
-    private snapshot: CombatSnapshot | null = null;
+    private frame: CombatFrame | null = null;
+    private get snapshot(): CombatSnapshot | null {
+        return this.frame?.snapshot ?? null;
+    }
+    private readonly progressLimits: ProgressLimits;
     private output: AdvanceResult | null = null;
     private requestId = 0;
     private acceptedSequence = 0;
@@ -47,6 +53,8 @@ export class WorkerCombatHost {
     constructor(private readonly options: WorkerCombatOptions) {
         this.sessionId = validateSessionId(options.sessionId);
         this.session = parseSession(options.session);
+        this.progressLimits = Object.freeze({ maxCaptured: new Set(this.session.scenario.routes.flatMap(route => route.opponents.map(opponent => opponent.pokemonId))).size,
+            maxRoutes: this.session.scenario.routes.length });
         if (!Number.isSafeInteger(options.requestTimeoutMs) || options.requestTimeoutMs <= 0) {
             throw new Error('Worker requestTimeoutMs must be a positive safe integer');
         }
@@ -55,6 +63,12 @@ export class WorkerCombatHost {
 
     get latest(): CombatSnapshot | null {
         return this.snapshot;
+    }
+    get latestFrame(): CombatFrame | null {
+        return this.frame;
+    }
+    get progress(): CombatProgress | null {
+        return this.frame?.progress ?? null;
     }
     get pendingOutput(): AdvanceResult | null {
         return this.output;
@@ -186,7 +200,7 @@ export class WorkerCombatHost {
             return;
         }
         try {
-            const response = parseResponse(value, this.sessionId, this.session.configuration);
+            const response = parseResponse(value, this.sessionId, this.session.configuration, this.progressLimits);
             if (response.type === 'fault') {
                 throw new Error(response.message);
             }
@@ -213,6 +227,12 @@ export class WorkerCombatHost {
             }
             if (result.type === 'ready') {
                 const saved = this.session.checkpoint?.combat;
+                const expectedProgress = saved ? { ...saved.progress, pokeballs: saved.pokeballs }
+                    : { money: 0, experience: 0, dungeonTokens: 0, defeats: 0, clickAttacks: 0, pokeballs: this.session.scenario.initialPokeballs, captured: [], routes: [] };
+                if (!sameData(result.progress, parseCombatProgress(expectedProgress, this.progressLimits))) {
+                    throw new Error('Worker did not initialize the requested progress');
+                }
+                verifySessionProgress(result.progress, result.snapshot, this.session.scenario, result.cursors.eventSequence, result.cursors.outcomeSequence);
                 const expectedCursors = saved ? { commandSequence: saved.commandSequence, commandAtMs: saved.commandAtMs,
                     eventSequence: saved.eventSequence, outcomeSequence: saved.commandSequence - saved.commands.length }
                     : { commandSequence: 0, commandAtMs: 0, eventSequence: 0, outcomeSequence: 0 };
@@ -224,7 +244,7 @@ export class WorkerCombatHost {
             }
             if (result.type === 'checkpoint') {
                 const saved = parseHostCheckpoint(result.checkpoint, this.session.configuration, this.session.scenario).combat;
-                if (!sameData(saved.snapshot, this.snapshot) || saved.commandSequence !== this.acceptedSequence
+                if (!sameData(parseCombatProgress({ ...saved.progress, pokeballs: saved.pokeballs }, this.progressLimits), this.progress) || !sameData(saved.snapshot, this.snapshot) || saved.commandSequence !== this.acceptedSequence
                     || saved.commandAtMs !== this.acceptedAtMs || saved.eventSequence !== this.eventSequence
                     || saved.commandSequence - saved.commands.length !== this.outcomeSequence) {
                     throw new Error('Worker checkpoint disagrees with delivered state');
@@ -246,7 +266,7 @@ export class WorkerCombatHost {
             pending.reject(new Error(result.message)); return;
         }
         if (result.type === 'ready') {
-            this.snapshot = result.snapshot;
+            this.frame = Object.freeze({ snapshot: result.snapshot, progress: result.progress });
             this.acceptedSequence = result.cursors.commandSequence;
             this.acceptedAtMs = result.cursors.commandAtMs;
             this.eventSequence = result.cursors.eventSequence;
@@ -288,9 +308,15 @@ export class WorkerCombatHost {
             }
             outcomeSequence = command.sequence; outcomeAtMs = command.atMs;
         }
+        const previousProgress = this.progress;
+        if (!previousProgress) {
+            throw new Error('Worker output preceded initial progress');
+        }
+        verifySessionProgress(batch.progress, batch.snapshot, this.session.scenario, eventSequence, outcomeSequence);
+        verifyProgressAdvance(previousProgress, batch);
         this.eventSequence = eventSequence; this.eventAtMs = eventAtMs;
         this.outcomeSequence = outcomeSequence; this.outcomeAtMs = outcomeAtMs;
-        this.snapshot = batch.snapshot; this.output = batch;
+        this.frame = Object.freeze({ snapshot: batch.snapshot, progress: batch.progress }); this.output = batch;
         const notification: unknown = this.options.onOutputAvailable?.();
         if (notification && typeof (notification as PromiseLike<unknown>).then === 'function') {
             Promise.resolve(notification).catch(() => {});

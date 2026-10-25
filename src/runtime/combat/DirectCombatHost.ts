@@ -1,3 +1,4 @@
+import type { CombatFrame } from '../../contracts/combat-progress';
 import type { CombatSnapshot } from '../../contracts/combat-protocol';
 import { validateConfiguration } from '../../contracts/configuration';
 import type { Configuration } from '../../contracts/configuration-types';
@@ -30,7 +31,10 @@ export class DirectCombatHost {
     private readonly scheduler: WakeScheduler;
     private readonly onOutputAvailable?: () => void;
     private readonly outputs: AdvanceResult[] = [];
-    private snapshot: CombatSnapshot;
+    private frame: CombatFrame;
+    private get snapshot(): CombatSnapshot {
+        return this.frame.snapshot;
+    }
     private pending: PendingWake | null = null;
     private running = false;
     private disposed = false;
@@ -48,7 +52,7 @@ export class DirectCombatHost {
         const saved = options.checkpoint === undefined ? undefined : parseHostCheckpoint(options.checkpoint, this.configuration, options.scenario);
         this.engine = new RouteCombatSimulation(options.sessionId, this.configuration, options.scenario, options.seed, options.random, saved?.combat);
         this.elapsedMs = saved?.activeTimeMs ?? 0;
-        this.snapshot = this.engine.snapshot;
+        this.frame = Object.freeze({ snapshot: this.engine.snapshot, progress: this.engine.progress });
     }
 
     get cursors() {
@@ -67,7 +71,10 @@ export class DirectCombatHost {
         return this.snapshot;
     }
     get progress() {
-        return this.engine.progress;
+        return this.frame.progress;
+    }
+    get latestFrame(): CombatFrame {
+        return this.frame;
     }
     get fault(): Error | null {
         return this.failure;
@@ -277,7 +284,7 @@ export class DirectCombatHost {
             if (target - this.snapshot.atMs >= this.configuration.simulation.stepMs) {
                 const output = this.engine.advanceTo(target);
                 this.outputs.push(output);
-                this.snapshot = output.snapshot;
+                this.frame = Object.freeze({ snapshot: output.snapshot, progress: output.progress });
                 published = true;
             }
         } catch (error) {

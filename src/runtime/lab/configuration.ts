@@ -1,3 +1,4 @@
+import { ProgressLabels, parseProgressLabels } from '../../client/combat/ProgressViewModel';
 import { CombatViewModel, CombatLabels } from '../../client/combat/CombatViewModel';
 import { CombatScenario } from '../../simulation/combat/model';
 import { dataObject, safeInteger, validateRandomState, validateScenario } from '../../simulation/combat/validation';
@@ -13,7 +14,7 @@ const COLOR_FIELDS = ['background', 'surface', 'text', 'muted', 'accent', 'outli
 const SIZE_FIELDS = ['gapRem', 'paddingRem', 'radiusRem', 'panelMinRem', 'maxWidthRem', 'fontSizeRem', 'lineHeight'] as const;
 export type LabTheme = Readonly<Record<typeof COLOR_FIELDS[number], string> & Record<typeof SIZE_FIELDS[number], number>>;
 export interface LabConfiguration {
-    readonly schemaVersion: 1;
+    readonly schemaVersion: 2;
     readonly startupTimeoutMs: number;
     readonly requestTimeoutMs: number;
     readonly maxCheckpointBytes: number;
@@ -22,6 +23,7 @@ export interface LabConfiguration {
     readonly initialRenderer: RendererKind;
     readonly scenario: CombatScenario;
     readonly combatLabels: CombatLabels;
+    readonly progressLabels: ProgressLabels;
     readonly text: LabText;
     readonly theme: LabTheme;
 }
@@ -30,9 +32,9 @@ export interface LabConfiguration {
 export function parseLabConfiguration(value: unknown): LabConfiguration {
     const data = dataObject(value, [
         'schemaVersion', 'startupTimeoutMs', 'requestTimeoutMs', 'maxCheckpointBytes', 'saveSlot', 'seed',
-        'initialRenderer', 'scenario', 'combatLabels', 'text', 'theme',
+        'initialRenderer', 'scenario', 'combatLabels', 'progressLabels', 'text', 'theme',
     ], 'lab configuration');
-    if (data.schemaVersion !== 1 || !['dom', 'knockout'].includes(data.initialRenderer as string)
+    if (data.schemaVersion !== 2 || !['dom', 'knockout'].includes(data.initialRenderer as string)
         || typeof data.saveSlot !== 'string' || !/^[A-Za-z0-9_-]{1,64}$/.test(data.saveSlot)) {
         throw new Error('Unsupported lab version, renderer or save slot');
     }
@@ -61,9 +63,9 @@ export function parseLabConfiguration(value: unknown): LabConfiguration {
             throw new Error(`Lab layout ${key} must be finite and positive`);
         }
     }
-    return Object.freeze({ schemaVersion: 1, startupTimeoutMs, requestTimeoutMs,
+    return Object.freeze({ schemaVersion: 2, startupTimeoutMs, requestTimeoutMs,
         maxCheckpointBytes: safeInteger(data.maxCheckpointBytes, 'maxCheckpointBytes', 1), saveSlot: data.saveSlot,
         seed: validateRandomState(data.seed), initialRenderer: data.initialRenderer as RendererKind,
         scenario: validateScenario(data.scenario), combatLabels: new CombatViewModel('lab-label-validation', data.combatLabels).labels,
-        text, theme: Object.freeze({ ...themeData }) as LabTheme });
+        progressLabels: parseProgressLabels(data.progressLabels), text, theme: Object.freeze({ ...themeData }) as LabTheme });
 }

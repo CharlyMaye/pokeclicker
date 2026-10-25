@@ -1,3 +1,4 @@
+import { CombatProgress, parseCombatProgress } from '../../contracts/combat-progress';
 import {
     COMBAT_PROTOCOL_VERSION, CombatEvent, CombatSnapshot, parseCombatCommand, parseCombatSnapshot, validateSessionId,
 } from '../../contracts/combat-protocol';
@@ -12,6 +13,7 @@ import { safeInteger, validateRandomState, validateScenario, xorshift32 } from '
 
 export interface AdvanceResult {
     readonly snapshot: CombatSnapshot;
+    readonly progress: CombatProgress;
     readonly events: readonly CombatEvent[];
     readonly commands: readonly CommandOutcome[];
     readonly remainingMs: number;
@@ -52,6 +54,17 @@ function project(world: CombatWorld): CombatSnapshot {
         location: world.selectedRoute.location,
         encounter: capture ? { phase: 'capturing', enemy, resolvesAtMs: capture.resolvesAtMs } : { phase: 'fighting', enemy },
     });
+}
+
+function projectProgress(world: CombatWorld): CombatProgress {
+    const progress = world.progress;
+    return parseCombatProgress({
+        money: progress.money, experience: progress.experience, dungeonTokens: progress.dungeonTokens,
+        defeats: progress.defeats, clickAttacks: progress.clickAttacks, pokeballs: world.pokeballs,
+        captured: [...progress.captured].map(([pokemonId, count]) => ({ pokemonId, count })),
+        routes: [...progress.routes.values()],
+    }, { maxCaptured: new Set(world.scenario.routes.flatMap(route => route.opponents.map(opponent => opponent.pokemonId))).size,
+        maxRoutes: world.scenario.routes.length });
 }
 
 /** Owns an ECS world; time is advanced explicitly and no browser services are used. */
@@ -105,17 +118,8 @@ export class RouteCombatSimulation {
         return project(this.world);
     }
 
-    get progress() {
-        const progress = this.world.progress;
-        return Object.freeze({
-            money: progress.money, experience: progress.experience, dungeonTokens: progress.dungeonTokens,
-            defeats: progress.defeats, clickAttacks: progress.clickAttacks, pokeballs: this.world.pokeballs,
-            captured: Object.freeze([...progress.captured].sort(([a], [b]) => a - b)
-                .map(([pokemonId, count]) => Object.freeze({ pokemonId, count }))),
-            routes: Object.freeze([...progress.routes.values()]
-                .sort((a, b) => a.location.region - b.location.region || a.location.route - b.location.route)
-                .map(value => Object.freeze({ ...value, location: Object.freeze({ ...value.location }) }))),
-        });
+    get progress(): CombatProgress {
+        return projectProgress(this.world);
     }
 
     get cursors() {
@@ -194,6 +198,7 @@ export class RouteCombatSimulation {
             }
             const result = Object.freeze({
                 snapshot: project(next),
+                progress: projectProgress(next),
                 events: Object.freeze(output.events),
                 commands: Object.freeze(output.commands),
                 remainingMs: targetMs - next.atMs,

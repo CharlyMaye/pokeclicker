@@ -1,3 +1,4 @@
+import { CombatProgress, ProgressLimits, parseCombatProgress } from '../../contracts/combat-progress';
 import { HostCheckpoint, parseHostCheckpoint } from '../persistence/HostCheckpoint';
 import { COMBAT_PROTOCOL_VERSION, CombatCommand, CombatSnapshot, parseCombatCommand, parseCombatEvent, parseCombatSnapshot, validateSessionId } from '../../contracts/combat-protocol';
 import type { Configuration } from '../../contracts/configuration-types';
@@ -7,7 +8,7 @@ import { validateScenario, validateRandomState, safeInteger } from '../../simula
 import type { CombatScenario, CommandOutcome } from '../../simulation/combat/model';
 
 // Transport version is independent of the combat and configuration versions.
-export const WORKER_PROTOCOL_VERSION = 2;
+export const WORKER_PROTOCOL_VERSION = 3;
 export type CombatInput = Readonly<{ type: 'ClickAttack' }> | Readonly<{ type: 'ChangeRoute'; destination: { region: number; route: number } }>;
 export interface WorkerSession {
     readonly configuration: Configuration;
@@ -34,7 +35,7 @@ export interface WorkerCursors {
 }
 
 export type WorkerResult =
-    | { readonly type: 'ready'; readonly snapshot: CombatSnapshot; readonly cursors: WorkerCursors }
+    | { readonly type: 'ready'; readonly snapshot: CombatSnapshot; readonly progress: CombatProgress; readonly cursors: WorkerCursors }
     | { readonly type: 'checkpoint'; readonly checkpoint: HostCheckpoint }
     | { readonly type: 'accepted'; readonly command: CombatCommand }
     | { readonly type: 'done' }
@@ -130,11 +131,11 @@ export function parseRequest(value: unknown, sessionId: string): WorkerRequest {
     return Object.freeze({ version: WORKER_PROTOCOL_VERSION, sessionId, requestId, payload: Object.freeze(payload) });
 }
 
-function parseResult(value: unknown, sessionId: string): WorkerResult {
+function parseResult(value: unknown, sessionId: string, limits: ProgressLimits): WorkerResult {
     const type = kind(value);
     switch (type) {
         case 'ready': {
-            const data = object(value, ['type', 'snapshot', 'cursors']);
+            const data = object(value, ['type', 'snapshot', 'progress', 'cursors']);
             const snapshot = parseCombatSnapshot(data.snapshot);
             if (snapshot.sessionId !== sessionId) {
                 throw new Error('Worker initialization belongs to a foreign session');
@@ -146,7 +147,7 @@ function parseResult(value: unknown, sessionId: string): WorkerResult {
             if (cursors.outcomeSequence > cursors.commandSequence || (!cursors.commandSequence && cursors.commandAtMs)) {
                 throw new Error('Invalid restored worker cursors');
             }
-            return Object.freeze({ type, snapshot, cursors });
+            return Object.freeze({ type, snapshot, progress: parseCombatProgress(data.progress, limits), cursors });
         }
         case 'checkpoint': return Object.freeze({ type, checkpoint: parseHostCheckpoint(object(value, ['type', 'checkpoint']).checkpoint) });
         case 'accepted': {
@@ -171,17 +172,17 @@ function outcome(value: unknown): CommandOutcome {
     return Object.freeze({ sequence: safeInteger(data.sequence, 'command sequence', 1), atMs: safeInteger(data.atMs, 'command time'), result: data.result as CommandOutcome['result'] });
 }
 
-export function parseResponse(value: unknown, sessionId: string, configuration: Configuration): WorkerResponse {
+export function parseResponse(value: unknown, sessionId: string, configuration: Configuration, progressLimits: ProgressLimits): WorkerResponse {
     const type = kind(value);
     const fields = ['version', 'sessionId', 'type'];
     const data = object(value, [...fields, ...(type === 'reply' ? ['requestId', 'result'] : type === 'output' ? ['batch'] : ['message'])]);
     header(data, sessionId);
     const common = { version: WORKER_PROTOCOL_VERSION, sessionId } as const;
     switch (type) {
-        case 'reply': return Object.freeze({ ...common, type, requestId: safeInteger(data.requestId, 'requestId', 1), result: parseResult(data.result, sessionId) });
+        case 'reply': return Object.freeze({ ...common, type, requestId: safeInteger(data.requestId, 'requestId', 1), result: parseResult(data.result, sessionId, progressLimits) });
         case 'fault': return Object.freeze({ ...common, type, message: message(data.message) });
         case 'output': {
-            const batch = object(data.batch, ['snapshot', 'events', 'commands', 'remainingMs']);
+            const batch = object(data.batch, ['snapshot', 'progress', 'events', 'commands', 'remainingMs']);
             const limits = configuration.simulation;
             // Each transition can emit at most two combat events; check lengths before mapping.
             const eventLimit = limits.maxStepsPerAdvance * limits.maxTransitionsPerStep * 2;
@@ -196,7 +197,7 @@ export function parseResponse(value: unknown, sessionId: string, configuration: 
                 || commands.some(command => command.atMs > snapshot.atMs)) {
                 throw new Error('Worker batch contains foreign or future records');
             }
-            return Object.freeze({ ...common, type, batch: Object.freeze({ snapshot, events, commands, remainingMs: safeInteger(batch.remainingMs, 'remainingMs') }) });
+            return Object.freeze({ ...common, type, batch: Object.freeze({ snapshot, progress: parseCombatProgress(batch.progress, progressLimits), events, commands, remainingMs: safeInteger(batch.remainingMs, 'remainingMs') }) });
         }
         default: throw new Error('Unsupported worker response');
     }

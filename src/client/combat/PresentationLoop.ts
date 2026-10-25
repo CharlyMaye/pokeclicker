@@ -1,16 +1,16 @@
 import type { CombatSnapshot } from '../../contracts/combat-protocol';
 import type { CancelScheduled, FrameScheduler } from '../../contracts/scheduling';
 
-export interface CombatSnapshotSource { readonly latest: CombatSnapshot | null }
-export interface CombatRenderer {
-    render(snapshot: CombatSnapshot): void;
+export interface CombatSnapshotSource<T = CombatSnapshot> { readonly latest: T | null }
+export interface CombatRenderer<T = CombatSnapshot> {
+    render(snapshot: T): void;
     dispose(): void;
 }
 
 interface PendingFrame { cancel?: CancelScheduled; requesting: boolean; inline: boolean }
 
 /** Reads snapshots at display cadence. It has no simulation or command dependency. */
-export class PresentationLoop {
+export class PresentationLoop<T = CombatSnapshot> {
     private pending: PendingFrame | null = null;
     private running = false;
     private disposed = false;
@@ -18,9 +18,9 @@ export class PresentationLoop {
     private lifecycle = {};
 
     constructor(
-        private readonly source: CombatSnapshotSource,
+        private readonly source: CombatSnapshotSource<T>,
         private readonly frames: FrameScheduler,
-        private readonly renderer: CombatRenderer
+        private readonly renderer: CombatRenderer<T>
     ) {}
 
     get fault(): Error | null {

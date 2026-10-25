@@ -46,3 +46,8 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 .ecs-lab dd { margin: 0; }
 .ecs-lab progress { width: 100%; accent-color: var(--accent); }
 .ecs-lab [hidden] { display: none; }
+
+.ecs-progress table { width: 100%; border-collapse: collapse; margin-block: var(--gap-rem); }
+.ecs-progress th, .ecs-progress td { text-align: start; padding: var(--gap-rem); border-bottom: thin solid var(--outline); }
+.ecs-progress caption { text-align: start; color: var(--accent); }
+.ecs-progress { overflow-x: auto; }

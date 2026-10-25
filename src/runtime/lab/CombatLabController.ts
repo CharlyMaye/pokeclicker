@@ -1,3 +1,4 @@
+import type { CombatFrame } from '../../contracts/combat-progress';
 import type { CombatCommand, CombatSnapshot, RouteReference } from '../../contracts/combat-protocol';
 import type { FrameScheduler } from '../../contracts/scheduling';
 import { CombatRenderer, PresentationLoop } from '../../client/combat/PresentationLoop';
@@ -9,6 +10,7 @@ import type { RendererKind } from './configuration';
 
 export interface LabHost {
     readonly latest: CombatSnapshot | null;
+    readonly latestFrame: CombatFrame | null;
     readonly pendingOutput: AdvanceResult | null;
     readonly fault: Error | null;
     readonly state: string;
@@ -31,14 +33,14 @@ export interface LabControllerOptions {
     readonly maxPendingOutputs: number;
     readonly newSessionId: () => string;
     readonly createHost: (sessionId: string, checkpoint: HostCheckpoint | undefined, output: () => void, fault: (error: Error) => void) => Promise<LabHost>;
-    readonly createRenderer: (kind: RendererKind, sessionId: string) => CombatRenderer;
+    readonly createRenderer: (kind: RendererKind, sessionId: string) => CombatRenderer<CombatFrame>;
     readonly changed: () => void;
 }
 
 /** Owns RPC arbitration and session replacement; rendering never owns output acknowledgment. */
 export class CombatLabController {
     private host: LabHost | null = null;
-    private display: PresentationLoop | null = null;
+    private display: PresentationLoop<CombatFrame> | null = null;
     private revision: string | null = null;
     private sessionId = '';
     private working = false;
@@ -257,8 +259,10 @@ export class CombatLabController {
             await this.settle();
         }
     }
-    private createDisplay(host: LabHost, sessionId: string, kind: RendererKind): PresentationLoop {
-        const display = new PresentationLoop(host, this.options.frames, this.options.createRenderer(kind, sessionId));
+    private createDisplay(host: LabHost, sessionId: string, kind: RendererKind): PresentationLoop<CombatFrame> {
+        const display = new PresentationLoop<CombatFrame>({ get latest() {
+            return host.latestFrame;
+        } }, this.options.frames, this.options.createRenderer(kind, sessionId));
         try {
             if (this.visible) {
                 display.start();
@@ -282,7 +286,7 @@ export class CombatLabController {
         if (this.disposed) {
             candidate.dispose(); throw new Error('Lab is disposed');
         }
-        let next: PresentationLoop;
+        let next: PresentationLoop<CombatFrame>;
         try {
             next = this.createDisplay(candidate, sessionId, this.kind);
         } catch (error) {

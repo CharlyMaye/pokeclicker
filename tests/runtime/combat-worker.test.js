@@ -27,7 +27,7 @@ async function started(overrides) {
     await context.call(context.host.start());
     return context;
 }
-const reply = (requestId, result) => ({ version: 2, sessionId: 'worker', type: 'reply', requestId, result });
+const reply = (requestId, result) => ({ version: 3, sessionId: 'worker', type: 'reply', requestId, result });
 
 describe('worker execution and delivery', () => {
     it('matches the direct engine across inputs, route changes and captures', async () => {
@@ -262,17 +262,17 @@ describe('worker data boundaries', () => {
         expect(getter).not.toHaveBeenCalled();
     });
     it('rejects unknown fields and versions in envelopes', () => {
-        const request = { version: 2, sessionId: 'worker', requestId: 1, payload: { type: 'start' } };
+        const request = { version: 3, sessionId: 'worker', requestId: 1, payload: { type: 'start' } };
         expect(parseRequest(request, 'worker')).toEqual(request);
-        expect(() => parseRequest({ ...request, version: 3 }, 'worker')).toThrow();
+        expect(() => parseRequest({ ...request, version: 2 }, 'worker')).toThrow();
         expect(() => parseRequest({ ...request, extra: true }, 'worker')).toThrow();
     });
     it('rejects oversized batches before iterating their contents', async () => {
         const { host, call } = setup();
         await call(host.initialize());
-        expect(() => parseResponse({ version: 2, sessionId: 'worker', type: 'output', batch: {
-            snapshot: host.latest, events: [], commands: new Array(simulation.maxQueuedCommands + 1), remainingMs: 0,
-        } }, 'worker', session.configuration)).toThrow('limits');
+        expect(() => parseResponse({ version: 3, sessionId: 'worker', type: 'output', batch: {
+            snapshot: host.latest, events: [], commands: new Array(simulation.maxQueuedCommands + 1), remainingMs: 0, progress: host.progress,
+        } }, 'worker', session.configuration, { maxCaptured: 4, maxRoutes: 5 })).toThrow('limits');
         host.dispose();
     });
     it.each(['gap', 'foreign-event', 'future-event', 'unknown-command', 'invalid-outcome', 'duplicate-output'])('does not commit a malformed %s batch', async mode => {
@@ -283,10 +283,10 @@ describe('worker data boundaries', () => {
             // Acknowledge so the injected record tests validation rather than queue capacity.
             const promise = host.acknowledge(1); link.flush(); await promise;
         }
-        const batch = { snapshot: { ...original, sequence: 2, atMs: 200 }, events: [], commands: [], remainingMs: 0 };
+        const batch = { snapshot: { ...original, sequence: 2, atMs: 200 }, events: [], commands: [], remainingMs: 0, progress: host.progress };
         if (mode === 'gap' || mode.includes('event')) batch.events.push({ protocolVersion: 1, sessionId: mode === 'foreign-event' ? 'other' : 'worker', type: 'EnemyDefeated', sequence: mode === 'gap' ? 2 : 1, atMs: mode === 'future-event' ? 300 : 150, encounterId: 1, pokemonId: 16 });
         if (mode.includes('command') || mode === 'invalid-outcome') batch.commands.push({ sequence: 1, atMs: 150, result: mode === 'invalid-outcome' ? 'invented' : 'applied' });
-        link.endpoints[0].receive({ version: 2, sessionId: 'worker', type: 'output', batch });
+        link.endpoints[0].receive({ version: 3, sessionId: 'worker', type: 'output', batch });
         expect(host.state).toBe('faulted');
         expect(host.latest).toBe(original);
     });
