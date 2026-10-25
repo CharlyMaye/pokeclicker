@@ -11,6 +11,21 @@ L'intelligence du jeu comprend toutes ses règles : combat, progression, économ
 
 Hypothèse de migration : conserver le gameplay, les contenus et la progression existants. Toute différence intentionnelle d'équilibrage ou de comportement temporel doit être identifiée séparément. Les sauvegardes existantes nécessitent un import versionné, testé et réversible par conservation de l'original.
 
+## Organisation des branches
+
+La branche d'intégration de la refonte est `refactor/ecs`, créée depuis `develop` au commit `66f2cc0f992d1ae2c7e6f7e171885ff1166835bf`.
+
+| Branche | Rôle | Destination des PR |
+| --- | --- | --- |
+| `develop` | Base du jeu publié et source du déploiement GitHub Pages. | Reçoit la refonte lorsqu'elle est prête à être publiée. |
+| `refactor/ecs` | Intégration des lots de la refonte et validation de leur fonctionnement ensemble. | `develop` pour la livraison de la refonte. |
+| `docs/ecs-refactor-plan` | Cadrage technique et mise en place de la CI pour la branche d'intégration. | `refactor/ecs` |
+| `feat/ecs-<sujet>`, `fix/ecs-<sujet>`, `test/ecs-<sujet>` | Une tâche ciblée par branche, créée depuis la version à jour de `refactor/ecs`. | `refactor/ecs` |
+
+Chaque nouveau lot est développé sur une branche de travail puis intégré par PR dans `refactor/ecs`. Les corrections de revue restent sur cette branche de travail. Avant de démarrer un lot dépendant d'un précédent, intégrer sa dépendance puis repartir de la branche d'intégration à jour.
+
+La CI couvre les PR vers `develop` et `refactor/ecs`, ainsi que les pushes sur ces deux branches. GitHub Pages publie `develop` : intégrer un lot dans `refactor/ecs` ne remplace pas le jeu en ligne.
+
 ## Constats sur le code actuel
 
 Inspection de `develop` au commit `66f2cc0f992d1ae2c7e6f7e171885ff1166835bf` :
