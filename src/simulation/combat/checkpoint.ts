@@ -1,3 +1,4 @@
+import { PartySnapshot, parsePartySnapshot, restorePartyState } from '../experience/partyExperience';
 import { CombatCommand, CombatSnapshot, RouteReference, parseCombatCommand, parseCombatSnapshot, validateSessionId } from '../../contracts/combat-protocol';
 import { validateConfiguration } from '../../contracts/configuration';
 import type { Configuration } from '../../contracts/configuration-types';
@@ -29,8 +30,9 @@ interface CheckpointState {
 }
 
 export type CombatCheckpoint = CheckpointState & (
-    { readonly formatVersion: 1; readonly spawnSample?: never }
-    | { readonly formatVersion: 2; readonly spawnSample: SpawnSample }
+    { readonly formatVersion: 1; readonly spawnSample?: never; readonly party?: never }
+    | { readonly formatVersion: 2; readonly spawnSample: SpawnSample; readonly party?: never }
+    | { readonly formatVersion: 3; readonly spawnSample: SpawnSample; readonly party: PartySnapshot }
 );
 
 function requireValid(condition: boolean, detail: string): void {
@@ -57,13 +59,14 @@ export function sameData(left: unknown, right: unknown): boolean {
 /** Validate a detached save before constructing or replacing any world. */
 export function parseCombatCheckpoint(value: unknown, expectedConfiguration?: Configuration, expectedScenario?: unknown): CombatCheckpoint {
     const version = value && typeof value === 'object' ? Object.getOwnPropertyDescriptor(value, 'formatVersion') : undefined;
-    const sampled = version && 'value' in version && version.value === 2;
+    const hasParty = version && 'value' in version && version.value === 3;
+    const sampled = hasParty || (version && 'value' in version && version.value === 2);
     const data = dataObject(value, [
-        ...(sampled ? ['spawnSample'] : []),
+        ...(sampled ? ['spawnSample'] : []), ...(hasParty ? ['party'] : []),
         'formatVersion', 'randomAlgorithm', 'configuration', 'scenario', 'snapshot', 'sourceLocation',
         'randomState', 'nextEntity', 'autoElapsedMs', 'lastClickAtMs', 'commandSequence', 'commandAtMs', 'eventSequence', 'pokeballs', 'commands', 'progress',
     ], 'checkpoint');
-    requireValid((data.formatVersion === 1 || data.formatVersion === 2) && data.randomAlgorithm === 'xorshift32', 'Unsupported checkpoint version or random algorithm');
+    requireValid((data.formatVersion === 1 || data.formatVersion === 2 || data.formatVersion === 3) && data.randomAlgorithm === 'xorshift32', 'Unsupported checkpoint version or random algorithm');
     const config = dataObject(data.configuration, ['combat', 'simulation'], 'configuration');
     const plainConfig = (value: unknown, label: string) => {
         requireValid(!!value && typeof value === 'object', `${label} must be plain data`);
@@ -71,8 +74,8 @@ export function parseCombatCheckpoint(value: unknown, expectedConfiguration?: Co
     };
     const configuration = validateConfiguration({ combat: plainConfig(config.combat, 'combat configuration'), simulation: plainConfig(config.simulation, 'simulation configuration') });
     const scenario = validateScenario(data.scenario);
-    requireValid((scenario.formatVersion === 3) === (data.formatVersion === 2), 'Checkpoint and scenario sampling versions disagree');
-    const sampling = scenario.formatVersion === 3
+    requireValid(data.formatVersion === (scenario.formatVersion === 4 ? 3 : scenario.formatVersion === 3 ? 2 : 1), 'Checkpoint and scenario sampling versions disagree');
+    const sampling = (scenario.formatVersion === 3 || scenario.formatVersion === 4)
         ? { formatVersion: 2 as const, spawnSample: validateSpawnSample(data.spawnSample, scenario.spawnRules.policy) }
         : { formatVersion: 1 as const };
     requireValid(!expectedConfiguration || sameData(configuration, validateConfiguration(expectedConfiguration)), 'Checkpoint configuration is incompatible');
@@ -149,7 +152,10 @@ export function parseCombatCheckpoint(value: unknown, expectedConfiguration?: Co
     requireValid(pokeballs === scenario.initialPokeballs - attempts && captures <= attempts - pendingCapture
         && eventSequence === defeats + attempts - pendingCapture && clickAttacks <= commandSequence - commands.length,
     'Capture inventory, events or click totals are inconsistent');
-    return Object.freeze({ ...sampling, randomAlgorithm: 'xorshift32', configuration, scenario, snapshot, sourceLocation,
+    const progression = scenario.formatVersion === 4
+        ? { formatVersion: 3 as const, spawnSample: validateSpawnSample(data.spawnSample, scenario.spawnRules.policy), party: parsePartySnapshot(data.party, scenario.party, defeats) }
+        : sampling;
+    return Object.freeze({ ...progression, randomAlgorithm: 'xorshift32', configuration, scenario, snapshot, sourceLocation,
         randomState, nextEntity, autoElapsedMs, lastClickAtMs, commandSequence, commandAtMs, eventSequence, pokeballs, commands,
         progress: Object.freeze({ money, experience, dungeonTokens, defeats, clickAttacks, captured, routes }) });
 }
@@ -163,14 +169,15 @@ export function restoreCombatWorld(checkpoint: CombatCheckpoint, sessionId: stri
     const { enemy } = snapshot.encounter;
     const selectedRoute = findRoute(scenario.routes, snapshot.location);
     const template = findRoute(scenario.routes, checkpoint.sourceLocation)?.opponents.find(opponent => opponent.pokemonId === enemy.pokemonId);
-    const definition = template && checkpoint.formatVersion === 2 ? resolveSpawnDefinition(scenario, checkpoint.sourceLocation, template, checkpoint.spawnSample) : template;
+    const definition = template && checkpoint.formatVersion !== 1 ? resolveSpawnDefinition(scenario, checkpoint.sourceLocation, template, checkpoint.spawnSample) : template;
     if (!selectedRoute || !definition) {
         throw new SimulationInputError('invalid-checkpoint', 'Missing route or opponent');
     }
     return {
         configuration: checkpoint.configuration, scenario, sessionId, selectedRoute,
+        ...(checkpoint.formatVersion === 3 ? { party: restorePartyState(checkpoint.party) } : {}),
         health: new Map([[enemy.encounterId, { current: enemy.health, maximum: enemy.maxHealth }]]),
-        encounters: new Map([[enemy.encounterId, { definition, location: checkpoint.sourceLocation, ...(checkpoint.formatVersion === 2 ? { sample: checkpoint.spawnSample } : {}) }]]),
+        encounters: new Map([[enemy.encounterId, { definition, location: checkpoint.sourceLocation, ...(checkpoint.formatVersion !== 1 ? { sample: checkpoint.spawnSample } : {}) }]]),
         captures: snapshot.encounter.phase === 'capturing' ? new Map([[enemy.encounterId, { resolvesAtMs: snapshot.encounter.resolvesAtMs }]]) : new Map(),
         atMs: snapshot.atMs, steps: snapshot.sequence, nextEntity: checkpoint.nextEntity,
         randomState: checkpoint.randomState, autoElapsedMs: checkpoint.autoElapsedMs, lastClickAtMs: checkpoint.lastClickAtMs,

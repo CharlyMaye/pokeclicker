@@ -1,3 +1,4 @@
+import { advancePartyExperience } from '../experience/partyExperience';
 import { COMBAT_PROTOCOL_VERSION, RouteReference } from '../../contracts/combat-protocol';
 import { CombatWorld, CommandOutcome, RandomStep, StepOutput } from './model';
 import { resolveSpawnDefinition, sampleSpawn } from './spawnRules';
@@ -20,7 +21,7 @@ export function spawnEnemy(world: CombatWorld, random: RandomStep): void {
         throw new Error('Cannot spawn over an existing encounter');
     }
     const template = selectOpponent(world.selectedRoute, draw(world, random));
-    const sample = world.scenario.formatVersion === 3 ? sampleSpawn(world.scenario.spawnRules, () => draw(world, random)) : undefined;
+    const sample = (world.scenario.formatVersion === 3 || world.scenario.formatVersion === 4) ? sampleSpawn(world.scenario.spawnRules, () => draw(world, random)) : undefined;
     const definition = sample ? resolveSpawnDefinition(world.scenario, world.selectedRoute.location, template, sample) : template;
     const entity = world.nextEntity;
     world.nextEntity = add(entity, 1, 'next entity');
@@ -65,6 +66,12 @@ export function settleDefeats(world: CombatWorld, random: RandomStep, output: St
         const { definition, location } = encounterFor(world, entity);
         world.progress.money = add(world.progress.money, definition.moneyReward, 'money');
         world.progress.experience = add(world.progress.experience, definition.experienceReward, 'experience');
+        if (world.scenario.formatVersion === 4) {
+            if (!world.party) {
+                throw new Error('Party experience components are missing');
+            }
+            world.party = advancePartyExperience(world.scenario.party, world.party, definition.experienceReward);
+        }
         world.progress.defeats = add(world.progress.defeats, 1, 'defeats');
         const routeProgress = progressFor(world, location);
         routeProgress.defeats = add(routeProgress.defeats, 1, 'route defeats');

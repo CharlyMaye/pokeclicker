@@ -1,3 +1,4 @@
+import type { PartyDefinition, PartyState } from '../experience/partyExperience';
 import type { SpawnRules, SpawnSample } from './spawnRules';
 import type { CombatCommand, CombatEvent, RouteReference } from '../../contracts/combat-protocol';
 import type { Configuration } from '../../contracts/configuration-types';
@@ -40,6 +41,7 @@ export type CombatScenario = ScenarioDefinition & (
     { readonly formatVersion?: never; readonly routes: readonly UniformCombatRoute[] }
     | { readonly formatVersion: 2; readonly routes: readonly WeightedCombatRoute[] }
     | { readonly formatVersion: 3; readonly routes: readonly WeightedCombatRoute[]; readonly spawnRules: SpawnRules }
+    | { readonly formatVersion: 4; readonly routes: readonly WeightedCombatRoute[]; readonly spawnRules: SpawnRules; readonly party: PartyDefinition }
 );
 
 export type RandomStep = (state: number) => Readonly<{ state: number; value: number }>;
@@ -65,6 +67,7 @@ export interface Progress {
 }
 
 export interface CombatWorld {
+    party?: PartyState;
     health: Map<Entity, Health>;
     encounters: Map<Entity, Encounter>;
     captures: Map<Entity, Capture>;

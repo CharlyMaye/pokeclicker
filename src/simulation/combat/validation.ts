@@ -1,3 +1,4 @@
+import { parsePartyDefinition } from '../experience/partyExperience';
 import { CombatScenario, OpponentDefinition, RandomStep, SimulationInputError, UniformCombatRoute, WeightedCombatRoute } from './model';
 import { findRoute, routeKey } from './routes';
 import { catalogId, dataArray, dataObject, safeInteger, validateLocation } from './input';
@@ -59,9 +60,10 @@ export function validateScenario(value: unknown): CombatScenario {
     const version = value && typeof value === 'object' ? Object.getOwnPropertyDescriptor(value, 'formatVersion') : undefined;
     const weighted = version !== undefined;
     const fields = ['initialLocation', 'routes', 'clickAttackDamage', 'clickAttacksAllowed', 'initialPokeballs'];
-    const dynamic = version && 'value' in version && version.value === 3;
-    const data = dataObject(value, weighted ? [...fields, 'formatVersion', ...(dynamic ? ['spawnRules'] : [])] : fields, 'scenario');
-    if (weighted && data.formatVersion !== 2 && data.formatVersion !== 3) {
+    const party = version && 'value' in version && version.value === 4;
+    const dynamic = party || (version && 'value' in version && version.value === 3);
+    const data = dataObject(value, weighted ? [...fields, 'formatVersion', ...(dynamic ? ['spawnRules'] : []), ...(party ? ['party'] : [])] : fields, 'scenario');
+    if (weighted && data.formatVersion !== 2 && data.formatVersion !== 3 && data.formatVersion !== 4) {
         throw new SimulationInputError('invalid-input', 'Unsupported combat scenario formatVersion');
     }
     if (!Array.isArray(data.routes) || data.routes.length === 0 || typeof data.clickAttacksAllowed !== 'boolean') {
@@ -69,11 +71,13 @@ export function validateScenario(value: unknown): CombatScenario {
     }
     const input = dataArray(data.routes, 'routes');
     const weightedRoutes = weighted ? Object.freeze(Array.from(input, entry => route(entry, true))) : [];
-    const selection = dynamic
-        ? { formatVersion: 3 as const, routes: weightedRoutes, spawnRules: validateSpawnRules(data.spawnRules, weightedRoutes) }
-        : weighted
-            ? { formatVersion: 2 as const, routes: weightedRoutes }
-            : { routes: Object.freeze(Array.from(input, entry => route(entry, false))) };
+    const selection = party
+        ? { formatVersion: 4 as const, routes: weightedRoutes, spawnRules: validateSpawnRules(data.spawnRules, weightedRoutes), party: parsePartyDefinition(data.party) }
+        : dynamic
+            ? { formatVersion: 3 as const, routes: weightedRoutes, spawnRules: validateSpawnRules(data.spawnRules, weightedRoutes) }
+            : weighted
+                ? { formatVersion: 2 as const, routes: weightedRoutes }
+                : { routes: Object.freeze(Array.from(input, entry => route(entry, false))) };
     const { routes } = selection;
     if (new Set(routes.map(entry => routeKey(entry.location))).size !== routes.length) {
         throw new SimulationInputError('invalid-input', 'Route locations must be unique');
