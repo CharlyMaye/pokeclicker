@@ -135,7 +135,8 @@ export class RouteCombatSimulation {
         const world = this.world;
         const progress = this.progress;
         const encounter = [...world.encounters.values()][0];
-        return parseCombatCheckpoint({ formatVersion: 1, randomAlgorithm: 'xorshift32',
+        const sampling = encounter.sample ? { formatVersion: 2, spawnSample: encounter.sample } : { formatVersion: 1 };
+        return parseCombatCheckpoint({ ...sampling, randomAlgorithm: 'xorshift32',
             configuration: world.configuration, scenario: world.scenario, snapshot: this.snapshot, sourceLocation: encounter.location,
             randomState: world.randomState, nextEntity: world.nextEntity, autoElapsedMs: world.autoElapsedMs,
             lastClickAtMs: world.lastClickAtMs, commandSequence: world.commandSequence, commandAtMs: world.commandAtMs,

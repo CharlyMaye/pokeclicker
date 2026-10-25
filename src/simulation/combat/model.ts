@@ -1,3 +1,4 @@
+import type { SpawnRules, SpawnSample } from './spawnRules';
 import type { CombatCommand, CombatEvent, RouteReference } from '../../contracts/combat-protocol';
 import type { Configuration } from '../../contracts/configuration-types';
 
@@ -38,12 +39,13 @@ interface ScenarioDefinition {
 export type CombatScenario = ScenarioDefinition & (
     { readonly formatVersion?: never; readonly routes: readonly UniformCombatRoute[] }
     | { readonly formatVersion: 2; readonly routes: readonly WeightedCombatRoute[] }
+    | { readonly formatVersion: 3; readonly routes: readonly WeightedCombatRoute[]; readonly spawnRules: SpawnRules }
 );
 
 export type RandomStep = (state: number) => Readonly<{ state: number; value: number }>;
 export type Entity = number;
 export interface Health { current: number; maximum: number }
-export interface Encounter { definition: OpponentDefinition; location: RouteReference }
+export interface Encounter { definition: OpponentDefinition; location: RouteReference; sample?: SpawnSample }
 export interface Capture { resolvesAtMs: number }
 
 export interface RouteProgress {

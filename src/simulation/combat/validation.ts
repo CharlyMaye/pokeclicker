@@ -1,9 +1,9 @@
-import type { RouteReference } from '../../contracts/combat-protocol';
 import { CombatScenario, OpponentDefinition, RandomStep, SimulationInputError, UniformCombatRoute, WeightedCombatRoute } from './model';
 import { findRoute, routeKey } from './routes';
-import { catalogId, dataArray, dataObject, safeInteger } from './input';
+import { catalogId, dataArray, dataObject, safeInteger, validateLocation } from './input';
+import { validateSpawnRules } from './spawnRules';
 import { validateEncounterTable } from './encounters';
-export { dataArray, dataObject, safeInteger } from './input';
+export { dataArray, dataObject, safeInteger, validateLocation } from './input';
 
 // Algorithm representation limit, not a gameplay setting.
 export const MAX_RANDOM_STATE = 2 ** 32 - 1;
@@ -27,11 +27,6 @@ export function validateOpponent(value: unknown): OpponentDefinition {
         captureProbability: data.captureProbability,
         captureDurationMs: safeInteger(data.captureDurationMs, 'captureDurationMs', 1),
     });
-}
-
-export function validateLocation(value: unknown): RouteReference {
-    const data = dataObject(value, ['region', 'route'], 'location');
-    return Object.freeze({ region: safeInteger(data.region, 'region'), route: safeInteger(data.route, 'route', 1) });
 }
 
 function route(value: unknown, weighted: true): WeightedCombatRoute;
@@ -64,17 +59,21 @@ export function validateScenario(value: unknown): CombatScenario {
     const version = value && typeof value === 'object' ? Object.getOwnPropertyDescriptor(value, 'formatVersion') : undefined;
     const weighted = version !== undefined;
     const fields = ['initialLocation', 'routes', 'clickAttackDamage', 'clickAttacksAllowed', 'initialPokeballs'];
-    const data = dataObject(value, weighted ? [...fields, 'formatVersion'] : fields, 'scenario');
-    if (weighted && data.formatVersion !== 2) {
+    const dynamic = version && 'value' in version && version.value === 3;
+    const data = dataObject(value, weighted ? [...fields, 'formatVersion', ...(dynamic ? ['spawnRules'] : [])] : fields, 'scenario');
+    if (weighted && data.formatVersion !== 2 && data.formatVersion !== 3) {
         throw new SimulationInputError('invalid-input', 'Unsupported combat scenario formatVersion');
     }
     if (!Array.isArray(data.routes) || data.routes.length === 0 || typeof data.clickAttacksAllowed !== 'boolean') {
         throw new SimulationInputError('invalid-input', 'Expected a nonempty route list and boolean clickAttacksAllowed');
     }
     const input = dataArray(data.routes, 'routes');
-    const selection = weighted
-        ? { formatVersion: 2 as const, routes: Object.freeze(Array.from(input, entry => route(entry, true))) }
-        : { routes: Object.freeze(Array.from(input, entry => route(entry, false))) };
+    const weightedRoutes = weighted ? Object.freeze(Array.from(input, entry => route(entry, true))) : [];
+    const selection = dynamic
+        ? { formatVersion: 3 as const, routes: weightedRoutes, spawnRules: validateSpawnRules(data.spawnRules, weightedRoutes) }
+        : weighted
+            ? { formatVersion: 2 as const, routes: weightedRoutes }
+            : { routes: Object.freeze(Array.from(input, entry => route(entry, false))) };
     const { routes } = selection;
     if (new Set(routes.map(entry => routeKey(entry.location))).size !== routes.length) {
         throw new SimulationInputError('invalid-input', 'Route locations must be unique');
