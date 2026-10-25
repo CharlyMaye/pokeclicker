@@ -7,6 +7,7 @@ import type { Configuration } from '../../contracts/configuration-types';
 import { CombatWorld, CommandOutcome, RandomStep, SimulationFault, SimulationInputError, StepOutput } from './model';
 import { spawnEnemy, stepCombat } from './systems';
 import { findRoute } from './routes';
+import { CombatCheckpoint, parseCombatCheckpoint, restoreCombatWorld } from './checkpoint';
 import { safeInteger, validateRandomState, validateScenario, xorshift32 } from './validation';
 
 export interface AdvanceResult {
@@ -65,10 +66,21 @@ export class RouteCombatSimulation {
         configuration: Configuration,
         scenario: unknown,
         seed: number,
-        private readonly random: RandomStep = xorshift32
+        private readonly random: RandomStep = xorshift32,
+        checkpoint?: unknown
     ) {
         if (typeof random !== 'function') {
             throw new SimulationInputError('invalid-input', 'Expected a pure random step function');
+        }
+        if (checkpoint !== undefined) {
+            if (random !== xorshift32) {
+                throw new SimulationInputError('invalid-checkpoint', 'Checkpoints require the versioned xorshift32 algorithm');
+            }
+            const saved = parseCombatCheckpoint(checkpoint, configuration, scenario);
+            this.world = restoreCombatWorld(saved, sessionId);
+            this.receiver = new CombatCommandReceiver(sessionId, { sequence: saved.commandSequence, atMs: saved.commandAtMs });
+            project(this.world);
+            return;
         }
         const definition = validateScenario(scenario);
         const selectedRoute = findRoute(definition.routes, definition.initialLocation);
@@ -80,7 +92,7 @@ export class RouteCombatSimulation {
             configuration: validateConfiguration(configuration), scenario: definition,
             selectedRoute,
             sessionId: validateSessionId(sessionId), randomState: validateRandomState(seed),
-            atMs: 0, steps: 0, nextEntity: 1, eventSequence: 0, autoElapsedMs: 0, lastClickAtMs: 0,
+            atMs: 0, steps: 0, nextEntity: 1, eventSequence: 0, commandSequence: 0, commandAtMs: 0, autoElapsedMs: 0, lastClickAtMs: 0,
             pokeballs: definition.initialPokeballs, commands: [],
             progress: { money: 0, experience: 0, dungeonTokens: 0, defeats: 0, clickAttacks: 0, captured: new Map(), routes: new Map() },
         };
@@ -104,6 +116,28 @@ export class RouteCombatSimulation {
                 .sort((a, b) => a.location.region - b.location.region || a.location.route - b.location.route)
                 .map(value => Object.freeze({ ...value, location: Object.freeze({ ...value.location }) }))),
         });
+    }
+
+    get cursors() {
+        return Object.freeze({ commandSequence: this.world.commandSequence, commandAtMs: this.world.commandAtMs,
+            eventSequence: this.world.eventSequence, outcomeSequence: this.world.commandSequence - this.world.commands.length });
+    }
+
+    checkpoint(): CombatCheckpoint {
+        this.requireUsable();
+        if (this.random !== xorshift32) {
+            throw new SimulationInputError('invalid-checkpoint', 'Checkpoints require the versioned xorshift32 algorithm');
+        }
+        const world = this.world;
+        const progress = this.progress;
+        const encounter = [...world.encounters.values()][0];
+        return parseCombatCheckpoint({ formatVersion: 1, randomAlgorithm: 'xorshift32',
+            configuration: world.configuration, scenario: world.scenario, snapshot: this.snapshot, sourceLocation: encounter.location,
+            randomState: world.randomState, nextEntity: world.nextEntity, autoElapsedMs: world.autoElapsedMs,
+            lastClickAtMs: world.lastClickAtMs, commandSequence: world.commandSequence, commandAtMs: world.commandAtMs,
+            eventSequence: world.eventSequence, pokeballs: world.pokeballs, commands: world.commands,
+            progress: { money: progress.money, experience: progress.experience, dungeonTokens: progress.dungeonTokens,
+                defeats: progress.defeats, clickAttacks: progress.clickAttacks, captured: progress.captured, routes: progress.routes } });
     }
 
     get randomState(): number {
@@ -138,6 +172,8 @@ export class RouteCombatSimulation {
         }
         // Only consume the sequence after all ingress checks pass.
         world.commands.push(this.receiver.receive(command));
+        world.commandSequence = command.sequence;
+        world.commandAtMs = command.atMs;
     }
 
     advanceTo(targetMs: number): AdvanceResult {

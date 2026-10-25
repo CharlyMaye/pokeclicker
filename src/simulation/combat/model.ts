@@ -61,6 +61,8 @@ export interface CombatWorld {
     steps: number;
     nextEntity: number;
     eventSequence: number;
+    commandSequence: number;
+    commandAtMs: number;
     randomState: number;
     autoElapsedMs: number;
     lastClickAtMs: number;

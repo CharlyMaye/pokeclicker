@@ -1,3 +1,5 @@
+import { HostCheckpoint, parseHostCheckpoint } from '../persistence/HostCheckpoint';
+import { sameData } from '../../simulation/combat/checkpoint';
 import { CombatCommand, CombatSnapshot, validateSessionId } from '../../contracts/combat-protocol';
 import type { CancelScheduled, WakeScheduler } from '../../contracts/scheduling';
 import type { AdvanceResult } from '../../simulation/combat/RouteCombatSimulation';
@@ -77,6 +79,17 @@ export class WorkerCombatHost {
     async stop(): Promise<void> {
         await this.request({ type: 'stop' });
     }
+    async checkpoint(): Promise<HostCheckpoint> {
+        if (this.lifecycle !== 'stopped' || this.output) {
+            throw new Error('Stop combat and acknowledge all output before saving');
+        }
+        const result = await this.request({ type: 'checkpoint' });
+        if (result.type !== 'checkpoint') {
+            throw new Error('Expected a checkpoint response');
+        }
+        return result.checkpoint;
+    }
+
     async submit(input: CombatInput): Promise<CombatCommand> {
         const result = await this.request({ type: 'input', input: parseInput(input) });
         if (result.type !== 'accepted') {
@@ -190,9 +203,28 @@ export class WorkerCombatHost {
         }
         const { payload } = pending;
         if (result.type !== 'rejected') {
-            const expected = payload.type === 'initialize' ? 'ready' : payload.type === 'input' ? 'accepted' : 'done';
+            const expected = payload.type === 'initialize' ? 'ready' : payload.type === 'input' ? 'accepted' : payload.type === 'checkpoint' ? 'checkpoint' : 'done';
             if (result.type !== expected) {
                 throw new Error('Worker reply does not match the pending operation');
+            }
+            if (result.type === 'ready') {
+                const saved = this.session.checkpoint?.combat;
+                const expectedCursors = saved ? { commandSequence: saved.commandSequence, commandAtMs: saved.commandAtMs,
+                    eventSequence: saved.eventSequence, outcomeSequence: saved.commandSequence - saved.commands.length }
+                    : { commandSequence: 0, commandAtMs: 0, eventSequence: 0, outcomeSequence: 0 };
+                if (!sameData(result.cursors, expectedCursors) || (saved
+                    ? !sameData(result.snapshot, { ...saved.snapshot, sessionId: this.sessionId })
+                    : result.snapshot.atMs !== 0 || result.snapshot.sequence !== 0)) {
+                    throw new Error('Worker did not initialize the requested checkpoint');
+                }
+            }
+            if (result.type === 'checkpoint') {
+                const saved = parseHostCheckpoint(result.checkpoint, this.session.configuration, this.session.scenario).combat;
+                if (!sameData(saved.snapshot, this.snapshot) || saved.commandSequence !== this.acceptedSequence
+                    || saved.commandAtMs !== this.acceptedAtMs || saved.eventSequence !== this.eventSequence
+                    || saved.commandSequence - saved.commands.length !== this.outcomeSequence) {
+                    throw new Error('Worker checkpoint disagrees with delivered state');
+                }
             }
             if (result.type === 'accepted') {
                 const command = result.command;
@@ -211,6 +243,12 @@ export class WorkerCombatHost {
         }
         if (result.type === 'ready') {
             this.snapshot = result.snapshot;
+            this.acceptedSequence = result.cursors.commandSequence;
+            this.acceptedAtMs = result.cursors.commandAtMs;
+            this.eventSequence = result.cursors.eventSequence;
+            this.outcomeSequence = result.cursors.outcomeSequence;
+            this.eventAtMs = result.snapshot.atMs;
+            this.outcomeAtMs = result.snapshot.atMs;
             this.lifecycle = 'stopped';
         } else if (result.type === 'accepted') {
             this.acceptedSequence = result.command.sequence;

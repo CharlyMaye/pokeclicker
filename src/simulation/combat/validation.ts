@@ -12,7 +12,7 @@ export function safeInteger(value: unknown, label: string, minimum = 0): number 
     return value;
 }
 
-function object(value: unknown, fields: readonly string[], label: string): Record<string, unknown> {
+export function dataObject(value: unknown, fields: readonly string[], label: string): Record<string, unknown> {
     if (value === null || typeof value !== 'object' || Array.isArray(value)
         || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) {
         throw new SimulationInputError('invalid-input', `${label} must be a plain data object`);
@@ -27,8 +27,21 @@ function object(value: unknown, fields: readonly string[], label: string): Recor
     return value as Record<string, unknown>;
 }
 
+export function dataArray(value: unknown, label: string, maximum = Number.MAX_SAFE_INTEGER): unknown[] {
+    if (!Array.isArray(value) || value.length > maximum || Reflect.ownKeys(value).length !== value.length + 1) {
+        throw new SimulationInputError('invalid-input', `${label} must be a bounded dense array`);
+    }
+    for (let index = 0; index < value.length; index++) {
+        const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+        if (!descriptor || !('value' in descriptor)) {
+            throw new SimulationInputError('invalid-input', `${label} must contain data properties only`);
+        }
+    }
+    return value;
+}
+
 function opponent(value: unknown): OpponentDefinition {
-    const data = object(value, [
+    const data = dataObject(value, [
         'pokemonId', 'health', 'autoAttackDamage', 'moneyReward', 'experienceReward',
         'dungeonTokenReward', 'captureProbability', 'captureDurationMs',
     ], 'opponent');
@@ -52,37 +65,37 @@ function opponent(value: unknown): OpponentDefinition {
     });
 }
 
-function location(value: unknown): RouteReference {
-    const data = object(value, ['region', 'route'], 'location');
+export function validateLocation(value: unknown): RouteReference {
+    const data = dataObject(value, ['region', 'route'], 'location');
     return Object.freeze({ region: safeInteger(data.region, 'region'), route: safeInteger(data.route, 'route', 1) });
 }
 
 function route(value: unknown): CombatRoute {
-    const data = object(value, ['location', 'opponents', 'unlocked'], 'route');
+    const data = dataObject(value, ['location', 'opponents', 'unlocked'], 'route');
     if (!Array.isArray(data.opponents) || data.opponents.length === 0 || typeof data.unlocked !== 'boolean') {
         throw new SimulationInputError('invalid-input', 'Expected a nonempty opponent list and boolean unlocked');
     }
-    const opponents = Array.from(data.opponents, opponent);
+    const opponents = Array.from(dataArray(data.opponents, 'opponents'), opponent);
     if (new Set(opponents.map(entry => entry.pokemonId)).size !== opponents.length) {
         throw new SimulationInputError('invalid-input', 'Opponent catalog IDs must be unique within a route');
     }
     return Object.freeze({
-        location: location(data.location),
+        location: validateLocation(data.location),
         opponents: Object.freeze(opponents),
         unlocked: data.unlocked,
     });
 }
 
 export function validateScenario(value: unknown): CombatScenario {
-    const data = object(value, ['initialLocation', 'routes', 'clickAttackDamage', 'clickAttacksAllowed', 'initialPokeballs'], 'scenario');
+    const data = dataObject(value, ['initialLocation', 'routes', 'clickAttackDamage', 'clickAttacksAllowed', 'initialPokeballs'], 'scenario');
     if (!Array.isArray(data.routes) || data.routes.length === 0 || typeof data.clickAttacksAllowed !== 'boolean') {
         throw new SimulationInputError('invalid-input', 'Expected a nonempty route list and boolean clickAttacksAllowed');
     }
-    const routes = Array.from(data.routes, route);
+    const routes = Array.from(dataArray(data.routes, 'routes'), route);
     if (new Set(routes.map(entry => routeKey(entry.location))).size !== routes.length) {
         throw new SimulationInputError('invalid-input', 'Route locations must be unique');
     }
-    const initialLocation = location(data.initialLocation);
+    const initialLocation = validateLocation(data.initialLocation);
     if (!findRoute(routes, initialLocation)?.unlocked) {
         throw new SimulationInputError('invalid-input', 'Initial location must resolve to an unlocked route');
     }

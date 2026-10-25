@@ -10,9 +10,16 @@ class SequenceGuard {
     private atMs = 0;
     private readonly sessionId: string;
 
-    constructor(sessionId: string, private readonly policy: StreamPolicy) {
+    constructor(sessionId: string, private readonly policy: StreamPolicy, cursor?: { sequence: number; atMs: number }) {
         this.sessionId = validateSessionId(sessionId);
         this.sequence = policy === 'snapshots' ? -1 : 0;
+        if (cursor) {
+            if (!Number.isSafeInteger(cursor.sequence) || cursor.sequence < 0 || !Number.isSafeInteger(cursor.atMs) || cursor.atMs < 0 || (!cursor.sequence && cursor.atMs)) {
+                throw new ProtocolError('invalid-payload', 'cursor', 'Invalid restored stream cursor');
+            }
+            this.sequence = cursor.sequence;
+            this.atMs = cursor.atMs;
+        }
     }
 
     accept(message: MessageHeader): boolean {
@@ -42,8 +49,8 @@ class SequenceGuard {
 export class CombatCommandReceiver {
     private readonly guard: SequenceGuard;
 
-    constructor(sessionId: string) {
-        this.guard = new SequenceGuard(sessionId, 'commands');
+    constructor(sessionId: string, cursor?: { sequence: number; atMs: number }) {
+        this.guard = new SequenceGuard(sessionId, 'commands', cursor);
     }
 
     receive(value: unknown): CombatCommand {

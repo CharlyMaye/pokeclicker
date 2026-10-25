@@ -12,12 +12,12 @@ const scenario = require('../fixtures/simulation/route-transitions.json');
 const policy = require('../fixtures/runtime/worker-policy.json');
 const session = { configuration: { combat, simulation }, scenario, seed: 123 };
 
-async function launch(t, nativeClock = false) {
+async function launch(t, nativeClock = false, checkpoint, sessionId = 'bundle') {
     const worker = new Worker(path.resolve(__dirname, 'browser-scope.cjs'), { workerData: { bundle: path.resolve(__dirname, '../../build/ecs/combat.worker.js'), nativeClock } });
     let tickId = 0;
     const ticks = new Map();
     worker.on('message', data => { if (data.test === 'tick') { ticks.get(data.id)?.(); ticks.delete(data.id); } });
-    const host = new WorkerCombatHost({ sessionId: 'bundle', session, ...policy,
+    const host = new WorkerCombatHost({ sessionId, session: { ...session, ...(checkpoint ? { checkpoint } : {}) }, ...policy,
         deadlines: { schedule(callback, delay) { const timer = setTimeout(callback, delay); return () => clearTimeout(timer); } },
         transport: {
             send: data => worker.postMessage(data), close: () => { void worker.terminate(); },
@@ -96,4 +96,48 @@ test('native worker timers continue while the main thread is blocked, then respe
     assert.ok(batches <= simulation.maxPendingOutputs, 'Worker FIFO stays bounded without acknowledgments');
     assert.equal(host.state, 'stopped');
     assert.equal(host.fault, null);
+});
+
+
+test('save, terminate and restore the emitted worker without changing combat outcomes', { timeout: 15000 }, async t => {
+    const { CheckpointStore } = require('../../src/runtime/persistence/CheckpointStore.ts');
+    const storagePolicy = require('../fixtures/runtime/checkpoint-policy.json');
+    const bytes = new Map();
+    const store = new CheckpointStore({ getItem: key => bytes.get(key) ?? null, setItem: (key, value) => bytes.set(key, value) },
+        { run: async (_name, operation) => operation() }, { ...storagePolicy, ...session });
+    const original = await launch(t);
+    const direct = new RouteCombatSimulation('bundle', session.configuration, scenario, session.seed);
+    for (const time of [50, 100, 150]) {
+        await original.tick(time, false);
+        direct.submit(await original.host.submit({ type: 'ClickAttack' }));
+    }
+    await original.tick(300); direct.advanceTo(300);
+    await original.tick(325, false);
+    direct.submit(await original.host.submit({ type: 'ChangeRoute', destination: { region: 0, route: 2 } }));
+    await original.host.stop(); await original.host.acknowledge(3);
+    const checkpoint = await original.host.checkpoint();
+    assert.equal(checkpoint.combat.snapshot.encounter.phase, 'capturing');
+    await store.write(checkpoint, null);
+    original.host.dispose();
+    const resumed = await launch(t, false, store.read().checkpoint, 'restored');
+    const normalize = value => JSON.parse(JSON.stringify(value, (key, item) => key === 'sessionId' ? 'session' : item));
+    let firstEvent;
+    for (let time = 400; time <= 12000; time += 100) {
+        await resumed.tick(time - 325, false);
+        if (time === 600) {
+            const command = await resumed.host.submit({ type: 'ClickAttack' });
+            direct.submit({ ...command, sessionId: 'bundle' });
+        }
+        const expected = direct.advanceTo(time);
+        await resumed.tick(time - 325);
+        assert.deepEqual(normalize(resumed.host.pendingOutput), normalize(expected));
+        firstEvent ??= resumed.host.pendingOutput.events[0];
+        await resumed.host.acknowledge(resumed.host.pendingOutput.snapshot.sequence);
+    }
+    await resumed.host.stop();
+    const final = await resumed.host.checkpoint();
+    assert.equal(firstEvent.sequence, checkpoint.combat.eventSequence + 1);
+    assert.deepEqual(normalize(final.combat), normalize(direct.checkpoint()));
+    assert.equal(final.activeTimeMs, 12000);
+    assert.equal(resumed.host.fault, null);
 });

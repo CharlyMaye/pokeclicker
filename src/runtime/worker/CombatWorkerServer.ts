@@ -110,13 +110,15 @@ export class CombatWorkerServer {
                 }, delay) },
                 onOutputAvailable: () => this.pump(),
             });
-            return { type: 'ready', snapshot: this.host.latest };
+            this.commandSequence = this.host.cursors.commandSequence;
+            return { type: 'ready', snapshot: this.host.latest, cursors: this.host.cursors };
         }
         const host = this.host;
         if (!host) {
             throw new Error('Initialize the worker before use');
         }
         switch (payload.type) {
+            case 'checkpoint': return { type: 'checkpoint', checkpoint: host.checkpoint() };
             case 'start': host.start(); return { type: 'done' };
             case 'stop': host.stop(); return { type: 'done' };
             case 'acknowledge':

@@ -3,6 +3,7 @@ import { validateConfiguration } from '../../contracts/configuration';
 import type { Configuration } from '../../contracts/configuration-types';
 import type { CancelScheduled, WakeScheduler } from '../../contracts/scheduling';
 import { RouteCombatSimulation, AdvanceResult } from '../../simulation/combat/RouteCombatSimulation';
+import { HostCheckpoint, parseHostCheckpoint } from '../persistence/HostCheckpoint';
 import type { RandomStep } from '../../simulation/combat/model';
 
 export interface DirectCombatHostOptions {
@@ -14,6 +15,7 @@ export interface DirectCombatHostOptions {
     readonly now: () => number;
     readonly scheduler: WakeScheduler;
     readonly random?: RandomStep;
+    readonly checkpoint?: HostCheckpoint;
     /** Synchronous runtime notification; consume/acknowledge FIFO output independently of rendering. */
     readonly onOutputAvailable?: () => void;
 }
@@ -43,8 +45,22 @@ export class DirectCombatHost {
         this.now = options.now;
         this.scheduler = options.scheduler;
         this.onOutputAvailable = options.onOutputAvailable;
-        this.engine = new RouteCombatSimulation(options.sessionId, this.configuration, options.scenario, options.seed, options.random);
+        const saved = options.checkpoint === undefined ? undefined : parseHostCheckpoint(options.checkpoint, this.configuration, options.scenario);
+        this.engine = new RouteCombatSimulation(options.sessionId, this.configuration, options.scenario, options.seed, options.random, saved?.combat);
+        this.elapsedMs = saved?.activeTimeMs ?? 0;
         this.snapshot = this.engine.snapshot;
+    }
+
+    get cursors() {
+        return this.engine.cursors;
+    }
+
+    checkpoint(): HostCheckpoint {
+        this.requireUsable();
+        if (this.running || this.outputs.length) {
+            throw new Error('Stop combat and acknowledge all output before saving');
+        }
+        return parseHostCheckpoint({ formatVersion: 1, activeTimeMs: this.elapsedMs, combat: this.engine.checkpoint() });
     }
 
     get latest(): CombatSnapshot {
