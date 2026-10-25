@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import ts from 'typescript';
 import LevelType, { levelRequirements } from '../../src/modules/party/LevelType';
 import { advancePartyExperience, createPartyState, parsePartyDefinition } from '../../src/simulation/experience/partyExperience';
 import { parseLevelCurves } from '../../src/simulation/experience/levelCurves';
 import policy from '../../public/config/level-curves.json';
-const compiled = ts.transpileModule(readFileSync(new URL('../../src/scripts/party/PartyPokemon.ts', import.meta.url), 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.None } }).outputText;
+const compiled = ts.transpileModule(readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../src/scripts/party/PartyPokemon.ts'), 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.None } }).outputText;
 class Bonus { constructor(value) { this.gainedBonus = value; } }
 function legacy(member, type) {
     const evolutions = [];
