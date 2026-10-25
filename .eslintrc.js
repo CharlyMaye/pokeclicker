@@ -3,11 +3,17 @@ module.exports = {
     ignorePatterns: ['src/contracts/generated/**'],
     overrides: [
         {
+            files: ['src/client/**/*.ts'],
+            parserOptions: { project: ['./tsconfig.client.json'] },
+            env: { browser: false },
+            rules: { 'no-restricted-imports': ['error', { patterns: ['**/simulation/**', '**/runtime/**', '**/modules/**', '**/scripts/**', 'node:*'] }] },
+        },
+        {
             files: ['src/simulation/**/*.ts'],
             parserOptions: { project: ['./tsconfig.simulation.json'] },
             env: { browser: false },
             rules: { 'no-restricted-globals': ['error', 'window', 'document', 'Date', 'performance', 'setTimeout', 'setInterval', 'requestAnimationFrame', 'fetch'],
-                'no-restricted-imports': ['error', { patterns: ['**/runtime/**', '**/modules/**', '**/scripts/**', 'node:*', 'knockout', 'jquery'] }],
+                'no-restricted-imports': ['error', { patterns: ['**/runtime/**', '**/client/**', '**/modules/**', '**/scripts/**', 'node:*', 'knockout', 'jquery'] }],
                 'no-restricted-properties': ['error', { object: 'Math', property: 'random' }] },
         },
         {

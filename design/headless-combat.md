@@ -36,7 +36,7 @@ Commands must be contiguous, nondecreasing in time and within the configured fut
 
 ## Bounds and failures
 
-`public/config/simulation.json` supplies the processing limits. Its schema version advances to 2 because these fields are required; version 1 is rejected. Generated types, validators and the hashed asset release are updated together. Combat configuration and the message protocol remain at version 1.
+`public/config/simulation.json` supplies the processing limits. Schema version 2 introduced the engine limits; version 3 adds the [direct host's output capacity](independent-loops.md). Older versions are rejected. Generated types, validators and the hashed asset release are updated together. Combat configuration and the message protocol remain at version 1.
 
 | Setting | Initial value | Behavior |
 | --- | --- | --- |
