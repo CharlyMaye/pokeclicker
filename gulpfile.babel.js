@@ -19,6 +19,7 @@ const del = require('del');
 const fs = require('fs');
 const path = require('path');
 const { Transform } = require('node:stream');
+const { loadConfiguration } = require('./tools/configuration.cjs');
 const version = process.env.npm_package_version || '0.0.0';
 
 const webpackConfig = require('./webpack.config');
@@ -132,6 +133,7 @@ const srcs = {
     ejsTemplates: ['src/templates/*.ejs'],
     styles: 'src/styles/**/*.less',
     assets: 'src/assets/**/*',
+    public: 'public/**/*',
     locales: 'src/translations/locales/**/*',
     libs: [
         'node_modules/bootstrap/dist/js/bootstrap.min.js',
@@ -175,6 +177,12 @@ gulp.task('assets', () => gulp.src(srcs.assets)
     .pipe(gulp.dest(dests.assets))
     .pipe(browserSync.reload({stream: true})));
 
+gulp.task('public', () => {
+    loadConfiguration(path.resolve('public'));
+    return gulp.src(srcs.public, { base: 'public' })
+        .pipe(gulp.dest(dests.base));
+});
+
 gulp.task('locales', () => gulp.src(srcs.locales)
     .pipe(changed(dests.locales))
     .pipe(gulp.dest(dests.locales))
@@ -189,6 +197,7 @@ gulp.task('browserSync', () => {
     });
     gulp.watch(srcs.html, gulp.series('compile-html'));
     gulp.watch(srcs.ejsTemplates, gulp.series('compile-html'));
+    gulp.watch(srcs.public, gulp.series('public'));
     gulp.watch(srcs.assets, gulp.series('assets'));
     gulp.watch(srcs.locales, gulp.series('locales'));
     gulp.watch(srcs.scripts, gulp.series('scripts'));
@@ -308,7 +317,7 @@ gulp.task('cname', (done) => {
 });
 
 gulp.task('build', done => {
-    gulp.series('copy', 'assets', 'locales', 'compile-html', 'scripts', 'styles')(done);
+    gulp.series('public', 'copy', 'assets', 'locales', 'compile-html', 'scripts', 'styles')(done);
 });
 
 gulp.task('website', done => {

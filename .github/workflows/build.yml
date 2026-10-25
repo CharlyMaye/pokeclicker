@@ -18,6 +18,10 @@ jobs:
       with:
         node-version-file: package.json
     - run: npm ci
+    - run: npm run test:refactor
+    - run: gulp public
+    - run: gulp copyWebsite
+    - run: node tools/check-published-config.cjs docs
     - run: gulp scripts
     - run: npm run eslint
     - run: npm run stylelint
