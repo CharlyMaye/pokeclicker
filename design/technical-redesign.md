@@ -190,3 +190,5 @@ The [worker runtime](worker-combat.md) now executes the existing route ECS in a 
 ## Playable prototype milestone
 
 The [combat lab](combat-lab.md) now connects worker combat, replaceable renderers, controls and checkpoint storage in an isolated page. Its JSON configuration and explicit visibility policy make stage 4 behavior reviewable end to end. This remains test balance; production content, progression and legacy-save integration are still outstanding.
+
+The [live progression milestone](live-progression.md) now carries accumulated rewards, capture inventory and route totals in each committed worker frame, displays them in both presentations and restores them before the first worker wake. This is prototype-owned progress; historical wallet/party and indirect effects still require explicit ownership and parity work.

@@ -1,17 +1,17 @@
 {
-  "version": "01e74b144a4cb537397fd1adaffc9f68f30ce35c723422d7931cc4cfcb6bafec",
+  "version": "e35f6d83230b3221f20b69d9c6ac414aa218ed36817246928ffe30832babd429",
   "files": {
     "combat": {
-      "path": "configuration/01e74b144a4cb537397fd1adaffc9f68f30ce35c723422d7931cc4cfcb6bafec/combat.json",
+      "path": "configuration/e35f6d83230b3221f20b69d9c6ac414aa218ed36817246928ffe30832babd429/combat.json",
       "sha256": "58b0dcf173f18343b9f673a6829804dc7af9600df2d71b4bbfdf98dd25d179fe"
     },
     "simulation": {
-      "path": "configuration/01e74b144a4cb537397fd1adaffc9f68f30ce35c723422d7931cc4cfcb6bafec/simulation.json",
+      "path": "configuration/e35f6d83230b3221f20b69d9c6ac414aa218ed36817246928ffe30832babd429/simulation.json",
       "sha256": "be1048393c473f8c6b67e17cc26b8cc32a6612dae670f4ccc12b386bd8817147"
     },
     "lab": {
-      "path": "configuration/01e74b144a4cb537397fd1adaffc9f68f30ce35c723422d7931cc4cfcb6bafec/lab.json",
-      "sha256": "6e437b469d58af2c50134b301afe0c4e51ba67de4e87d9297210ccf38681af49"
+      "path": "configuration/e35f6d83230b3221f20b69d9c6ac414aa218ed36817246928ffe30832babd429/lab.json",
+      "sha256": "408f8c6ba07ac196c533b47959e2dae76561841ba026cfdc994c8fad32a171b6"
     }
   }
 }

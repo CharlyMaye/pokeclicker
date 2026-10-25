@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "startupTimeoutMs": 10000,
   "requestTimeoutMs": 5000,
   "maxCheckpointBytes": 1048576,
@@ -140,8 +140,8 @@
     "route": "Route",
     "dom": "Diagnostic view",
     "knockout": "Combat panel",
-    "loading": "Loading combat\u2026",
-    "busy": "Working\u2026",
+    "loading": "Loading combat…",
+    "busy": "Working…",
     "running": "Combat is running",
     "stopped": "Combat is paused",
     "saved": "Checkpoint saved",
@@ -174,5 +174,24 @@
     "maxWidthRem": 72,
     "fontSizeRem": 1,
     "lineHeight": 1.5
+  },
+  "progressLabels": {
+    "title": "Progress",
+    "money": "Money",
+    "experience": "Experience",
+    "dungeonTokens": "Dungeon tokens",
+    "defeats": "Defeats",
+    "clickAttacks": "Click attacks",
+    "pokeballs": "Poké Balls",
+    "captured": "Captured Pokémon",
+    "routes": "Route progress",
+    "pokemonId": "Pokémon ID",
+    "count": "Count",
+    "region": "Region",
+    "route": "Route",
+    "captures": "Captures",
+    "waiting": "Waiting for progress",
+    "emptyCaptures": "No Pokémon captured yet.",
+    "emptyRoutes": "No route defeats yet."
   }
 }

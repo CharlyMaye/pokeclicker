@@ -70,10 +70,14 @@ test('emitted page plays, swaps views, saves, reloads and recovers under the Pag
     for (const time of [50, 100, 150]) { await first.tick(time, false); await x.click('attack'); }
     await first.tick(300); await until(() => !x.button('save').disabled);
     x.frame(); assert.match(window.document.querySelector('[data-combat-field="status"]').textContent, /Capturing/);
+    const displayedTotals = () => Object.fromEntries([...window.document.querySelectorAll('[data-progress-field]')].map(node => [node.dataset.progressField, node.textContent]));
+    const capturingTotals = displayedTotals();
+    assert.equal(capturingTotals.money, '10'); assert.equal(capturingTotals.pokeballs, '1'); assert.equal(capturingTotals.defeats, '1');
     const select = window.document.querySelector('[data-control="renderer"]'); select.value = 'dom'; select.dispatchEvent(new window.Event('change'));
     await until(() => !x.button('save').disabled); x.frame();
     assert.equal(x.workers.length, 1); assert.equal(window.document.querySelectorAll('.ecs-lab-view > section').length, 1);
     assert.ok(window.document.querySelector('.ecs-combat-diagnostics'));
+    assert.deepEqual(displayedTotals(), capturingTotals);
     const route = window.document.querySelector('[data-control="route"]'); route.value = '0:2'; route.dispatchEvent(new window.Event('change'));
     await until(() => !x.button('save').disabled); await first.tick(400); await until(() => !x.button('save').disabled);
     await x.click('save'); const saved = JSON.parse(window.localStorage.getItem(key));
@@ -85,8 +89,13 @@ test('emitted page plays, swaps views, saves, reloads and recovers under the Pag
     x.button('cancel').click(); assert.equal(window.document.activeElement, x.button('load'));
     await x.click('recover'); x.button('confirm').click(); await until(() => x.workers.length === 2 && !x.button('start').disabled);
     assert.equal(first.closed, true); const recovered = JSON.parse(window.localStorage.getItem(key));
+    x.frame();
+    assert.equal(displayedTotals().money, String(saved.checkpoint.combat.progress.money));
+    assert.equal(displayedTotals().pokeballs, String(saved.checkpoint.combat.pokeballs));
     assert.deepEqual(recovered.checkpoint, saved.checkpoint); assert.notEqual(recovered.revision, saved.revision);
     await x.click('load'); x.button('confirm').click(); await until(() => x.workers.length === 3 && !x.button('start').disabled);
+    x.frame();
+    assert.equal(displayedTotals().money, String(saved.checkpoint.combat.progress.money));
     assert.equal(window.localStorage.getItem('player'), 'legacy-sentinel');
     await x.click('start'); Object.defineProperty(window.document, 'hidden', { configurable: true, value: true });
     window.document.dispatchEvent(new window.Event('visibilitychange')); await until(() => !x.button('start').disabled);

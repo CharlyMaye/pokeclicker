@@ -11,7 +11,7 @@ The current Pages workflow publishes only `develop`. Merging a topic PR into `re
 Review these interactions:
 
 1. Start combat, click attacks and select another unlocked route. During capture, the original encounter completes before the destination spawns.
-2. Switch between Combat panel and Diagnostic view. The worker, command stream and progress remain the same. Neither view advances combat or acknowledges worker output.
+2. Review the money, experience, tokens, ball count, captures and route totals. Switch between Combat panel and Diagnostic view. The worker, command stream and progress remain the same. Neither view advances combat or acknowledges worker output.
 3. Save and pause, resume, then save again. Reload requires confirmation and replaces the worker with a new stopped session. Cancel preserves the session and returns focus to the initiating control.
 4. Restore the previous save after confirmation. Recovery retains the displaced bytes and generates a new revision. Existing malformed or incompatible data is reported and is never silently reset.
 5. Hide and return to the page. Presentation stops immediately and a pause request follows any current worker operation. Returning restarts display only; combat requires Start. Leaving disposes the worker and owned DOM. Back/forward-cache suspension pauses the session.
@@ -30,7 +30,7 @@ The controller does not apply historical rewards. Prototype progression is alrea
 
 ## Required JSON
 
-`public/config/lab.json` provides the scenario, seed, renderer choice, timeouts, save slot and byte limit, English text, combat labels and theme colors/layout. Core combat and scheduling settings remain in their existing JSON files. The scenario deliberately uses test balance and numeric Pokemon/route identifiers; it is not a production content catalog.
+`public/config/lab.json` version 2 provides the scenario, seed, renderer choice, timeouts, save slot and byte limit, English text, combat/progress labels and theme colors/layout. Core combat and scheduling settings remain in their existing JSON files. The scenario deliberately uses test balance and numeric Pokemon/route identifiers; it is not a production content catalog.
 
 `parseLabConfiguration` is the canonical strict parser for this assembly document. Build tooling uses it through ts-node and runtime uses the same TypeScript implementation. It rejects missing/unknown fields, unsafe timers, invalid scenario references, blank labels, nonportable save slots, invalid colors and nonpositive layout values, then returns detached frozen data. Core combat/simulation schemas still generate their own validators and types; there is no second lab schema to drift.
 
@@ -43,3 +43,5 @@ Run `npm run generate:config` after changing JSON. All three files participate i
 These are browser API integration tests, not visual or cross-browser testing. Manual review should include keyboard navigation, narrow screens, storage restrictions and actual tab/background behavior. Browser scheduling can delay delivery of a pause request; the lab does not claim instantaneous suspension or device-sleep guarantees.
 
 Remaining production work includes real content and party inputs, indirect progression compatibility, legacy-save migration, offline rules, other battle modes and production activation. No feature flag enables ECS inside the legacy loop yet.
+
+[Live progression](live-progression.md) documents the committed frame shared by both views, transport version 3 and compatibility with existing version-one checkpoints.

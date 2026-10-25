@@ -1,6 +1,5 @@
 import type { Configuration } from '../../contracts/configuration-types';
-import { DomCombatRenderer } from '../../client/renderers/DomCombatRenderer';
-import { KnockoutCombatRenderer } from '../../client/renderers/KnockoutCombatRenderer';
+import { CombatSessionRenderer } from '../../client/renderers/CombatSessionRenderer';
 import { element } from '../../client/renderers/elements';
 import { createBrowserCheckpointStore } from '../persistence/CheckpointStore';
 import { browserFrameScheduler } from '../scheduling/browserSchedulers';
@@ -167,7 +166,9 @@ export function mountCombatLab(container: HTMLElement, base: URL, configuration:
                 sessionId, session: { configuration, scenario: lab.scenario, seed: lab.seed, ...(checkpoint ? { checkpoint } : {}) },
                 requestTimeoutMs: lab.requestTimeoutMs, onOutputAvailable, onFault,
             })),
-            createRenderer: (kind, sessionId) => kind === 'dom' ? new DomCombatRenderer(view, sessionId, lab.combatLabels) : new KnockoutCombatRenderer(view, sessionId, lab.combatLabels),
+            createRenderer: (kind, sessionId) => new CombatSessionRenderer(view, sessionId, kind, lab.combatLabels, lab.progressLabels, {
+                maxCaptured: new Set(lab.scenario.routes.flatMap(route => route.opponents.map(opponent => opponent.pokemonId))).size, maxRoutes: lab.scenario.routes.length,
+            }),
         });
         controller.setVisible(!document.hidden);
         const ready = controller.initialize();
