@@ -47,8 +47,11 @@ export const validateSimulation: Validator<SimulationConfiguration>;
     const experienceBytes = readFileSync(path.join(projectRoot, 'public/config/experience.json'));
     require('./route-content.cjs').parseExperiencePolicy(JSON.parse(experienceBytes.toString('utf8')));
     hashes.experience = digest(experienceBytes);
+    const levelBytes = readFileSync(path.join(projectRoot, 'public/config/level-curves.json'));
+    require('./route-content.cjs').parseLevelCurves(JSON.parse(levelBytes.toString('utf8')));
+    hashes['level-curves'] = digest(levelBytes);
     const version = digest(JSON.stringify(hashes));
-    const release = { version, files: Object.fromEntries([...names, 'lab', 'route-health', 'encounter-rules', 'experience'].map(name => [name, {
+    const release = { version, files: Object.fromEntries([...names, 'lab', 'route-health', 'encounter-rules', 'experience', 'level-curves'].map(name => [name, {
         path: `configuration/${version}/${name}.json`, sha256: hashes[name],
     }])) };
     output.set('src/runtime/configuration/generated/release.json', `${JSON.stringify(release, null, 2)}\n`);

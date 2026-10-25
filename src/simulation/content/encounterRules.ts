@@ -8,7 +8,7 @@ export { calculateEncounterRules, parseEncounterRulesPolicy, EncounterRulesPolic
 
 export function applyEncounterSnapshot(scenarioValue: unknown, snapshotValue: unknown, policyValue: unknown): CombatScenario {
     const scenario = validateScenario(scenarioValue);
-    if (scenario.formatVersion === 3) {
+    if ((scenario.formatVersion === 3 || scenario.formatVersion === 4)) {
         throw new SimulationInputError('invalid-input', 'Resolved encounter snapshots cannot replace sampled spawn rules');
     }
     const policy = parseEncounterRulesPolicy(policyValue);

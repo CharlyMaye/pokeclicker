@@ -69,8 +69,8 @@ export function sampleSpawn(rules: SpawnRules, draw: () => number): SpawnSample 
 }
 
 export function resolveSpawnDefinition(scenario: CombatScenario, location: RouteReference, template: OpponentDefinition, sample: SpawnSample): OpponentDefinition {
-    if (scenario.formatVersion !== 3) {
-        throw new SimulationInputError('invalid-input', 'Spawn samples require a version 3 scenario');
+    if ((scenario.formatVersion !== 3 && scenario.formatVersion !== 4)) {
+        throw new SimulationInputError('invalid-input', 'Spawn samples require a sampled scenario');
     }
     const profile = scenario.spawnRules.opponents.find(entry => key(entry.location, entry.pokemonId) === key(location, template.pokemonId));
     if (!profile) {

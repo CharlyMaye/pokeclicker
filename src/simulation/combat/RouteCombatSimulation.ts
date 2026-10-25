@@ -1,3 +1,4 @@
+import { createPartyState, projectPartyState } from '../experience/partyExperience';
 import { CombatProgress, parseCombatProgress } from '../../contracts/combat-progress';
 import {
     COMBAT_PROTOCOL_VERSION, CombatEvent, CombatSnapshot, parseCombatCommand, parseCombatSnapshot, validateSessionId,
@@ -102,6 +103,7 @@ export class RouteCombatSimulation {
         }
         this.world = {
             health: new Map(), encounters: new Map(), captures: new Map(),
+            ...(definition.formatVersion === 4 ? { party: createPartyState(definition.party) } : {}),
             configuration: validateConfiguration(configuration), scenario: definition,
             selectedRoute,
             sessionId: validateSessionId(sessionId), randomState: validateRandomState(seed),
@@ -122,6 +124,10 @@ export class RouteCombatSimulation {
         return projectProgress(this.world);
     }
 
+    get partyExperience() {
+        return this.world.party ? projectPartyState(this.world.party) : null;
+    }
+
     get cursors() {
         return Object.freeze({ commandSequence: this.world.commandSequence, commandAtMs: this.world.commandAtMs,
             eventSequence: this.world.eventSequence, outcomeSequence: this.world.commandSequence - this.world.commands.length });
@@ -135,7 +141,9 @@ export class RouteCombatSimulation {
         const world = this.world;
         const progress = this.progress;
         const encounter = [...world.encounters.values()][0];
-        const sampling = encounter.sample ? { formatVersion: 2, spawnSample: encounter.sample } : { formatVersion: 1 };
+        const sampling = world.party
+            ? { formatVersion: 3, spawnSample: encounter.sample, party: projectPartyState(world.party) }
+            : encounter.sample ? { formatVersion: 2, spawnSample: encounter.sample } : { formatVersion: 1 };
         return parseCombatCheckpoint({ ...sampling, randomAlgorithm: 'xorshift32',
             configuration: world.configuration, scenario: world.scenario, snapshot: this.snapshot, sourceLocation: encounter.location,
             randomState: world.randomState, nextEntity: world.nextEntity, autoElapsedMs: world.autoElapsedMs,
