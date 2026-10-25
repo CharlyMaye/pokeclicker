@@ -17,6 +17,8 @@ const preparedScenario = prepareRouteSession({ content: require('../fixtures/sim
 const { prepareSampledRouteSession } = require('../../src/simulation/content/prepareSampledRouteSession.ts');
 const sampledScenario = prepareSampledRouteSession({ content: require('../fixtures/simulation/route-content.json'), healthPolicy: require('../../public/config/route-health.json'),
     damage: require('../fixtures/simulation/damage-snapshot.json'), spawnRules: { policy: require('../../public/config/encounter-rules.json'), opponents: require('../fixtures/simulation/spawn-profiles.json') } });
+const { prepareLegacyRouteSession } = require('../../src/runtime/legacy/prepareLegacyRouteSession.ts');
+const legacyScenario = prepareLegacyRouteSession(require('../fixtures/runtime/legacy-route-source.cjs')());
 const weightedScenario = require('../fixtures/simulation/weighted-encounters.json');
 const policy = require('../fixtures/runtime/worker-policy.json');
 const session = { configuration: { combat, simulation }, scenario, seed: 123 };
@@ -108,7 +110,7 @@ test('native worker timers continue while the main thread is blocked, then respe
 });
 
 
-for (const [label, definition] of [['uniform', scenario], ['weighted', weightedScenario], ['compiled', compiledScenario], ['prepared', preparedScenario], ['sampled', sampledScenario]]) {
+for (const [label, definition] of [['uniform', scenario], ['weighted', weightedScenario], ['compiled', compiledScenario], ['prepared', preparedScenario], ['sampled', sampledScenario], ['legacy catalog', legacyScenario]]) {
     test(`save, terminate and restore the emitted ${label} worker without changing combat outcomes`, { timeout: 15000 }, async t => {
         const { CheckpointStore } = require('../../src/runtime/persistence/CheckpointStore.ts');
         const storagePolicy = require('../fixtures/runtime/checkpoint-policy.json');
