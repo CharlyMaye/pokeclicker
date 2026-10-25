@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "moneyMinimum": 10,
+  "moneyLinear": 3,
+  "moneyScale": 5,
+  "moneyExponent": 1.15,
+  "moneyDeviationMin": -25,
+  "moneyDeviationMax": 25,
+  "tokenMinimum": 1,
+  "tokenScale": 6,
+  "tokenRouteScale": 2,
+  "tokenDivisor": 2.8,
+  "tokenRegionDivisor": 3,
+  "tokenExponent": 1.08,
+  "catchExponent": 0.75,
+  "catchVariationMin": -3,
+  "catchVariationMax": 3,
+  "tokenCurrencyRate": 15000
+}

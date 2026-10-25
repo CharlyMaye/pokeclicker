@@ -11,6 +11,9 @@ const simulation = require('../../public/config/simulation.json');
 const scenario = require('../fixtures/simulation/route-transitions.json');
 const { compileRouteScenario } = require('../../src/simulation/content/compileRouteScenario.ts');
 const compiledScenario = compileRouteScenario(require('../fixtures/simulation/route-content.json'), require('../../public/config/route-health.json'));
+const { prepareRouteSession } = require('../../src/simulation/content/prepareRouteSession.ts');
+const preparedScenario = prepareRouteSession({ content: require('../fixtures/simulation/route-content.json'), healthPolicy: require('../../public/config/route-health.json'),
+    damage: require('../fixtures/simulation/damage-snapshot.json'), encounters: require('../fixtures/simulation/encounter-snapshot.json'), encounterPolicy: require('../../public/config/encounter-rules.json') });
 const weightedScenario = require('../fixtures/simulation/weighted-encounters.json');
 const policy = require('../fixtures/runtime/worker-policy.json');
 const session = { configuration: { combat, simulation }, scenario, seed: 123 };
@@ -102,7 +105,7 @@ test('native worker timers continue while the main thread is blocked, then respe
 });
 
 
-for (const [label, definition] of [['uniform', scenario], ['weighted', weightedScenario], ['compiled', compiledScenario]]) {
+for (const [label, definition] of [['uniform', scenario], ['weighted', weightedScenario], ['compiled', compiledScenario], ['prepared', preparedScenario]]) {
     test(`save, terminate and restore the emitted ${label} worker without changing combat outcomes`, { timeout: 15000 }, async t => {
         const { CheckpointStore } = require('../../src/runtime/persistence/CheckpointStore.ts');
         const storagePolicy = require('../fixtures/runtime/checkpoint-policy.json');
