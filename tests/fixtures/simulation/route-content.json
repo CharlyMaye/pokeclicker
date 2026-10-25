@@ -1,0 +1,422 @@
+{
+  "formatVersion": 1,
+  "initialLocation": {
+    "region": 0,
+    "route": 1
+  },
+  "routes": [
+    {
+      "location": {
+        "region": 0,
+        "route": 1
+      },
+      "unlocked": true,
+      "normalizedRoute": 1,
+      "healthOverride": 30,
+      "pools": {
+        "ordinaryWeight": 1,
+        "land": [
+          16
+        ],
+        "water": [],
+        "headbutt": [],
+        "special": [
+          {
+            "pokemonIds": [
+              16.01
+            ],
+            "weight": 2.5,
+            "available": true
+          },
+          {
+            "pokemonIds": [
+              16
+            ],
+            "weight": 0.5,
+            "available": true
+          },
+          {
+            "pokemonIds": [
+              16.02
+            ],
+            "weight": 1,
+            "available": false
+          }
+        ]
+      },
+      "access": {
+        "waterUnlocked": false,
+        "includeHeadbutt": true
+      },
+      "catalog": [
+        {
+          "pokemonId": 16,
+          "baseHealth": 40,
+          "combat": {
+            "autoAttackDamage": 10,
+            "moneyReward": 10,
+            "experienceReward": 12,
+            "dungeonTokenReward": 2,
+            "captureProbability": 0.5,
+            "captureDurationMs": 200
+          }
+        },
+        {
+          "pokemonId": 16.01,
+          "baseHealth": 40,
+          "combat": {
+            "autoAttackDamage": 10,
+            "moneyReward": 15,
+            "experienceReward": 12,
+            "dungeonTokenReward": 2,
+            "captureProbability": 0.75,
+            "captureDurationMs": 200
+          }
+        },
+        {
+          "pokemonId": 16.02,
+          "baseHealth": 100,
+          "combat": {
+            "autoAttackDamage": 10,
+            "moneyReward": 10,
+            "experienceReward": 12,
+            "dungeonTokenReward": 2,
+            "captureProbability": 0.5,
+            "captureDurationMs": 200
+          }
+        }
+      ]
+    },
+    {
+      "location": {
+        "region": 0,
+        "route": 2
+      },
+      "unlocked": true,
+      "normalizedRoute": 2,
+      "healthOverride": 40,
+      "pools": {
+        "ordinaryWeight": 1,
+        "land": [
+          19
+        ],
+        "water": [],
+        "headbutt": [],
+        "special": [
+          {
+            "pokemonIds": [
+              19.01
+            ],
+            "weight": 2.5,
+            "available": true
+          },
+          {
+            "pokemonIds": [
+              19
+            ],
+            "weight": 0.5,
+            "available": true
+          },
+          {
+            "pokemonIds": [
+              19.02
+            ],
+            "weight": 1,
+            "available": false
+          }
+        ]
+      },
+      "access": {
+        "waterUnlocked": false,
+        "includeHeadbutt": true
+      },
+      "catalog": [
+        {
+          "pokemonId": 19,
+          "baseHealth": 40,
+          "combat": {
+            "autoAttackDamage": 20,
+            "moneyReward": 25,
+            "experienceReward": 18,
+            "dungeonTokenReward": 9,
+            "captureProbability": 0.1,
+            "captureDurationMs": 450
+          }
+        },
+        {
+          "pokemonId": 19.01,
+          "baseHealth": 40,
+          "combat": {
+            "autoAttackDamage": 20,
+            "moneyReward": 30,
+            "experienceReward": 18,
+            "dungeonTokenReward": 9,
+            "captureProbability": 0.75,
+            "captureDurationMs": 450
+          }
+        },
+        {
+          "pokemonId": 19.02,
+          "baseHealth": 100,
+          "combat": {
+            "autoAttackDamage": 20,
+            "moneyReward": 25,
+            "experienceReward": 18,
+            "dungeonTokenReward": 9,
+            "captureProbability": 0.1,
+            "captureDurationMs": 450
+          }
+        }
+      ]
+    },
+    {
+      "location": {
+        "region": 0,
+        "route": 3
+      },
+      "unlocked": true,
+      "normalizedRoute": 3,
+      "healthOverride": 50,
+      "pools": {
+        "ordinaryWeight": 1,
+        "land": [
+          16
+        ],
+        "water": [],
+        "headbutt": [],
+        "special": [
+          {
+            "pokemonIds": [
+              16.01
+            ],
+            "weight": 2.5,
+            "available": true
+          },
+          {
+            "pokemonIds": [
+              16
+            ],
+            "weight": 0.5,
+            "available": true
+          },
+          {
+            "pokemonIds": [
+              16.02
+            ],
+            "weight": 1,
+            "available": false
+          }
+        ]
+      },
+      "access": {
+        "waterUnlocked": false,
+        "includeHeadbutt": true
+      },
+      "catalog": [
+        {
+          "pokemonId": 16,
+          "baseHealth": 40,
+          "combat": {
+            "autoAttackDamage": 5,
+            "moneyReward": 30,
+            "experienceReward": 20,
+            "dungeonTokenReward": 11,
+            "captureProbability": 0.75,
+            "captureDurationMs": 300
+          }
+        },
+        {
+          "pokemonId": 16.01,
+          "baseHealth": 40,
+          "combat": {
+            "autoAttackDamage": 5,
+            "moneyReward": 35,
+            "experienceReward": 20,
+            "dungeonTokenReward": 11,
+            "captureProbability": 0.75,
+            "captureDurationMs": 300
+          }
+        },
+        {
+          "pokemonId": 16.02,
+          "baseHealth": 100,
+          "combat": {
+            "autoAttackDamage": 5,
+            "moneyReward": 30,
+            "experienceReward": 20,
+            "dungeonTokenReward": 11,
+            "captureProbability": 0.75,
+            "captureDurationMs": 300
+          }
+        }
+      ]
+    },
+    {
+      "location": {
+        "region": 0,
+        "route": 4
+      },
+      "unlocked": false,
+      "normalizedRoute": 4,
+      "healthOverride": 60,
+      "pools": {
+        "ordinaryWeight": 1,
+        "land": [
+          21
+        ],
+        "water": [],
+        "headbutt": [],
+        "special": [
+          {
+            "pokemonIds": [
+              21.01
+            ],
+            "weight": 2.5,
+            "available": true
+          },
+          {
+            "pokemonIds": [
+              21
+            ],
+            "weight": 0.5,
+            "available": true
+          },
+          {
+            "pokemonIds": [
+              21.02
+            ],
+            "weight": 1,
+            "available": false
+          }
+        ]
+      },
+      "access": {
+        "waterUnlocked": false,
+        "includeHeadbutt": true
+      },
+      "catalog": [
+        {
+          "pokemonId": 21,
+          "baseHealth": 40,
+          "combat": {
+            "autoAttackDamage": 10,
+            "moneyReward": 40,
+            "experienceReward": 25,
+            "dungeonTokenReward": 12,
+            "captureProbability": 0.5,
+            "captureDurationMs": 500
+          }
+        },
+        {
+          "pokemonId": 21.01,
+          "baseHealth": 40,
+          "combat": {
+            "autoAttackDamage": 10,
+            "moneyReward": 45,
+            "experienceReward": 25,
+            "dungeonTokenReward": 12,
+            "captureProbability": 0.75,
+            "captureDurationMs": 500
+          }
+        },
+        {
+          "pokemonId": 21.02,
+          "baseHealth": 100,
+          "combat": {
+            "autoAttackDamage": 10,
+            "moneyReward": 40,
+            "experienceReward": 25,
+            "dungeonTokenReward": 12,
+            "captureProbability": 0.5,
+            "captureDurationMs": 500
+          }
+        }
+      ]
+    },
+    {
+      "location": {
+        "region": 1,
+        "route": 1
+      },
+      "unlocked": true,
+      "normalizedRoute": 1,
+      "healthOverride": 70,
+      "pools": {
+        "ordinaryWeight": 1,
+        "land": [
+          161
+        ],
+        "water": [],
+        "headbutt": [],
+        "special": [
+          {
+            "pokemonIds": [
+              161.01
+            ],
+            "weight": 2.5,
+            "available": true
+          },
+          {
+            "pokemonIds": [
+              161
+            ],
+            "weight": 0.5,
+            "available": true
+          },
+          {
+            "pokemonIds": [
+              161.02
+            ],
+            "weight": 1,
+            "available": false
+          }
+        ]
+      },
+      "access": {
+        "waterUnlocked": false,
+        "includeHeadbutt": true
+      },
+      "catalog": [
+        {
+          "pokemonId": 161,
+          "baseHealth": 40,
+          "combat": {
+            "autoAttackDamage": 10,
+            "moneyReward": 50,
+            "experienceReward": 30,
+            "dungeonTokenReward": 13,
+            "captureProbability": 0.5,
+            "captureDurationMs": 500
+          }
+        },
+        {
+          "pokemonId": 161.01,
+          "baseHealth": 40,
+          "combat": {
+            "autoAttackDamage": 10,
+            "moneyReward": 55,
+            "experienceReward": 30,
+            "dungeonTokenReward": 13,
+            "captureProbability": 0.75,
+            "captureDurationMs": 500
+          }
+        },
+        {
+          "pokemonId": 161.02,
+          "baseHealth": 100,
+          "combat": {
+            "autoAttackDamage": 10,
+            "moneyReward": 50,
+            "experienceReward": 30,
+            "dungeonTokenReward": 13,
+            "captureProbability": 0.5,
+            "captureDurationMs": 500
+          }
+        }
+      ]
+    }
+  ],
+  "clickAttackDamage": 10,
+  "clickAttacksAllowed": true,
+  "initialPokeballs": 2
+}

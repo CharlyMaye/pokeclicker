@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "minimumHealth": 20,
+  "routeScale": 100,
+  "routeExponent": 2.2,
+  "routeDivisor": 12,
+  "growthExponent": 1.15,
+  "regionDivisor": 20,
+  "speciesOffset": 0.9,
+  "speciesDivisor": 10
+}

@@ -196,3 +196,5 @@ The [live progression milestone](live-progression.md) now carries accumulated re
 The [portable checkpoint milestone](portable-checkpoints.md) adds file export, validated preview and confirmed import across ECS sessions, completing the prototype file-transfer path within stage 4. Legacy-save migration and historical feature ownership remain separate acceptance work.
 
 The [weighted encounter milestone](weighted-encounters.md) adds explicit weighted scenario data and a pure route-pool resolver, with differential legacy selection checks and worker checkpoint replay. Production catalog/stat resolution and dynamic requirement updates remain outstanding; existing lab configuration and saves retain uniform selection.
+
+The [route content compiler](route-content.md) now combines explicit catalog snapshots, weighted pools and JSON-configured legacy health formulas into worker-ready scenarios. Health parity is tested against the real factory; production catalog extraction, normalized route resolution and non-health stat calculations still need adapters and compatibility tests.
