@@ -1,174 +1,182 @@
-# Refonte technique : simulation ECS et présentation substituable
+# Technical redesign: ECS simulation and replaceable presentation
 
-Statut : proposition de conception pour le fork `CharlyMaye/pokeclicker`.
-Ce document définit la cible et les premiers lots ; il ne décrit pas une migration déjà réalisée.
+Status: design proposal for the `CharlyMaye/pokeclicker` fork.
+This document defines the target and the first migration stages. It does not describe an implementation that has already been completed.
 
-## Objectif et contraintes
+## Goals and constraints
 
-La simulation utilise une approche Entity Component System (ECS). L'OOP et SOLID servent les responsabilités et les contrats qui le justifient. Le code doit rester lisible, explicite et défensif, sans imposer le découpage en couches de la Clean Architecture.
+The simulation follows an Entity Component System (ECS) approach. Use OOP and SOLID where they support clear responsibilities and contracts. Keep the code readable, explicit and defensive, without imposing the layers of Clean Architecture.
 
-L'intelligence du jeu comprend toutes ses règles : combat, progression, économie, captures, temporisations et gains hors ligne. Elle doit fonctionner sans affichage. La boucle de simulation et la boucle de présentation ont des responsabilités et des cadences indépendantes. Remplacer une interface ne doit pas modifier les règles.
+Game logic includes combat, progression, the economy, captures, timers and offline rewards. It must run without a display. Simulation and presentation have independent loops, responsibilities and update rates. Replacing the interface must not change the rules.
 
-Hypothèse de migration : conserver le gameplay, les contenus et la progression existants. Toute différence intentionnelle d'équilibrage ou de comportement temporel doit être identifiée séparément. Les sauvegardes existantes nécessitent un import versionné, testé et réversible par conservation de l'original.
+Migration baseline: preserve existing gameplay, content and player progress. Identify any intentional balance or timing change separately. Existing saves require a versioned, tested import process that preserves the original for recovery.
 
-## Organisation des branches
+## Language and review policy
 
-La branche d'intégration de la refonte est `refactor/ecs`, créée depuis `develop` au commit `66f2cc0f992d1ae2c7e6f7e171885ff1166835bf`.
+Use English for code identifiers, comments, technical documentation, commit messages, PR titles and PR descriptions. Keep player-facing translations in the existing localization system.
 
-| Branche | Rôle | Destination des PR |
+Keep unfinished work in draft PRs. Before marking a PR ready for review, inspect its final diff and verify the relevant checks on its latest commit. Tell the user what changed, which checks passed, what needs their attention and which branch will receive the changes.
+
+The user reviews the proposal and decides whether to merge it. A passing CI run supports that decision but does not replace the review. After a material update to a PR, reassess readiness and identify what needs another review.
+
+## Branch organization
+
+The redesign integration branch is `refactor/ecs`, created from `develop` at commit `66f2cc0f992d1ae2c7e6f7e171885ff1166835bf`.
+
+| Branch | Purpose | PR target |
 | --- | --- | --- |
-| `develop` | Base du jeu publié et source du déploiement GitHub Pages. | Reçoit la refonte lorsqu'elle est prête à être publiée. |
-| `refactor/ecs` | Intégration des lots de la refonte et validation de leur fonctionnement ensemble. | `develop` pour la livraison de la refonte. |
-| `docs/ecs-refactor-plan` | Cadrage technique et mise en place de la CI pour la branche d'intégration. | `refactor/ecs` |
-| `feat/ecs-<sujet>`, `fix/ecs-<sujet>`, `test/ecs-<sujet>` | Une tâche ciblée par branche, créée depuis la version à jour de `refactor/ecs`. | `refactor/ecs` |
+| `develop` | Source of the published game and the GitHub Pages deployment. | Receives the redesign when it is ready to ship. |
+| `refactor/ecs` | Integrates redesign stages and validates their combined behavior. | `develop` when shipping the redesign. |
+| `docs/ecs-refactor-plan` | Technical planning and CI setup for the integration branch. | `refactor/ecs` |
+| `feat/ecs-<topic>`, `fix/ecs-<topic>`, `test/ecs-<topic>` | One focused task per branch, created from the current `refactor/ecs` branch. | `refactor/ecs` |
 
-Chaque nouveau lot est développé sur une branche de travail puis intégré par PR dans `refactor/ecs`. Les corrections de revue restent sur cette branche de travail. Avant de démarrer un lot dépendant d'un précédent, intégrer sa dépendance puis repartir de la branche d'intégration à jour.
+Develop each new stage on a work branch and integrate it through a PR into `refactor/ecs`. Apply review changes on that work branch. Before starting a stage that depends on an earlier one, integrate the dependency and branch from the updated integration branch.
 
-La CI couvre les PR vers `develop` et `refactor/ecs`, ainsi que les pushes sur ces deux branches. GitHub Pages publie `develop` : intégrer un lot dans `refactor/ecs` ne remplace pas le jeu en ligne.
+CI covers PRs targeting `develop` and `refactor/ecs`, as well as pushes to either branch. GitHub Pages publishes `develop`: integrating a stage into `refactor/ecs` does not replace the live game.
 
-## Constats sur le code actuel
+## Findings in the current code
 
-Inspection de `develop` au commit `66f2cc0f992d1ae2c7e6f7e171885ff1166835bf` :
+Inspected `develop` at commit `66f2cc0f992d1ae2c7e6f7e171885ff1166835bf`:
 
-| Emplacement | Couplage observé | Conséquence pour la migration |
+| Location | Observed coupling | Migration consequence |
 | --- | --- | --- |
-| [Game.start](../src/scripts/Game.ts) | `requestAnimationFrame` déclenche `gameTick` ; le worker envoie des messages, mais le calcul reste dans le thread principal. | Extraire le pilotage temporel et déplacer réellement la simulation dans un worker. |
-| [Game.gameTick](../src/scripts/Game.ts) | Orchestre combat, ferme, sauvegarde, calendrier et notifications via des objets globaux. | Rendre explicites l'ordre des systèmes et les effets externes. |
-| [Battle](../src/modules/battles/Battle.ts) | État Knockout, accès à `App.game`, `Date.now`, tirages aléatoires et capture via `setTimeout`. | Introduire des données de combat, des commandes et des échéances de simulation. |
-| [App](../src/scripts/App.ts) | Le modèle de jeu est directement fourni à `ko.applyBindings`. | Construire un modèle de présentation distinct du monde ECS. |
-| [Save](../src/scripts/Save.ts) | Sérialisation liée aux propriétés de `App.game` et aux objets réactifs. | Définir un format de sauvegarde indépendant du stockage interne de l'ECS. |
-| [Gulp](../gulpfile.babel.js) | Copie des assets et traductions vers `build`, puis vers `docs` ; aucune convention automatique pour `public`. | Ajouter explicitement la copie et la validation des futurs fichiers publics. |
+| [Game.start](../src/scripts/Game.ts) | `requestAnimationFrame` triggers `gameTick`; the worker sends messages, but computation stays on the main thread. | Extract time scheduling and move the simulation itself into a worker. |
+| [Game.gameTick](../src/scripts/Game.ts) | Coordinates combat, farming, saving, the calendar and notifications through global objects. | Make system order and external effects explicit. |
+| [Battle](../src/modules/battles/Battle.ts) | Mixes Knockout state, `App.game` access, `Date.now`, random draws and captures scheduled with `setTimeout`. | Introduce combat data, commands and simulation deadlines. |
+| [App](../src/scripts/App.ts) | Passes the game model directly to `ko.applyBindings`. | Build a presentation model separate from the ECS world. |
+| [Save](../src/scripts/Save.ts) | Serialization depends on `App.game` properties and reactive objects. | Define a save format independent of internal ECS storage. |
+| [Gulp](../gulpfile.babel.js) | Copies assets and translations into `build`, then `docs`; it has no automatic `public` convention. | Explicitly add copying and validation for the new public files. |
 
-Le tick nominal actuel vaut 100 ms, l'attaque automatique 1 000 ms et la limite des clics 50 ms. Le bonus d'argent hors ligne est plafonné à 24 heures avec un multiplicateur de 0,5. Ces valeurs sont des références de compatibilité, pas de nouvelles décisions d'équilibrage.
+The current nominal tick is 100 ms, automatic attacks run every 1,000 ms and the click cooldown is 50 ms. Offline money rewards are capped at 24 hours with a 0.5 multiplier. These values are compatibility baselines, not new balance decisions.
 
-## Modèle ECS
+## ECS model
 
-- Une entité est un identifiant d'instance. Une définition de Pokémon appartient au catalogue ; ce n'est pas une instance de combat.
-- Un composant contient des données : `Health`, `Attack`, `AttackCooldown`, `CaptureAttempt`, `Encounter`, par exemple. Il ne contient ni observable UI, ni méthode de rendu.
-- Un système applique une règle à une sélection d'entités. Son ordre et les composants qu'il lit ou modifie sont explicites.
-- Le monde ECS est la source de vérité des fonctionnalités migrées. Les créations et suppressions d'entités sont appliquées à des points définis pour ne pas invalider une itération.
-- Les données globales telles que les règles validées, le temps de simulation et l'état du générateur aléatoire sont des ressources du monde. Un portefeuille ou un catalogue n'a pas besoin d'être artificiellement transformé en milliers d'entités.
+- An entity is an instance identifier. A Pokemon definition belongs to a catalog; it is not a combat instance.
+- A component holds data, such as `Health`, `Attack`, `AttackCooldown`, `CaptureAttempt` or `Encounter`. It contains neither UI observables nor rendering methods.
+- A system applies a rule to a selection of entities. Its execution order and the components it reads or writes are explicit.
+- The ECS world is the source of truth for migrated features. Apply entity creation and removal at defined boundaries so they do not invalidate iteration.
+- Shared data such as validated rules, simulation time and random generator state are world resources. A wallet or catalog does not need to be artificially split into thousands of entities.
 
-Premier ensemble de systèmes envisagé : consommation des commandes, attaques, défaite et récompenses, capture, génération du prochain adversaire. L'ordre exact doit être fixé par les scénarios de compatibilité avant le branchement à l'ancien jeu.
+The first proposed systems cover command processing, attacks, defeat and rewards, captures, and spawning the next opponent. Establish their exact order through compatibility scenarios before connecting them to the existing game.
 
-Les systèmes peuvent être des fonctions. Des classes restent adaptées à un objet qui possède un cycle de vie, comme un hôte de simulation, un rendu ou un stockage. SOLID s'applique notamment à leurs petits contrats remplaçables ; il n'impose ni une interface pour chaque classe ni une hiérarchie d'héritage des Pokémon.
+Systems may be functions. Classes remain appropriate for objects with a lifecycle, such as a simulation host, renderer or storage implementation. Apply SOLID to their small, replaceable contracts; it does not require an interface for every class or a Pokemon inheritance hierarchy.
 
-## Séparation simulation / présentation
+## Simulation and presentation separation
 
 ```mermaid
 flowchart TD
-    Inputs["Entrées utilisateur"] -->|Commandes| Simulation["Simulation ECS à pas fixe"]
-    Clock["Temps de simulation"] --> Simulation
-    Simulation -->|États et événements| Protocol["Contrat de présentation"]
-    Protocol --> Legacy["Rendu Knockout"]
-    Protocol --> Other["Autre rendu"]
+    Inputs["User input"] -->|Commands| Simulation["Fixed-step ECS simulation"]
+    Clock["Simulation time"] --> Simulation
+    Simulation -->|Snapshots and events| Protocol["Presentation contract"]
+    Protocol --> Legacy["Knockout renderer"]
+    Protocol --> Other["Alternative renderer"]
 ```
 
-Ce schéma représente les flux de données. Le moteur ne dépend pas des implémentations de rendu.
+This diagram shows data flow. The engine does not depend on renderer implementations.
 
-### Contrat d'échange
+### Exchange contract
 
-- Entrée : commandes typées telles que `ClickAttack` ou `ChangeRoute`. Leur ordre et leur instant dans la chronologie de simulation sont enregistrables pour rejouer un scénario.
-- Sortie : projections de l'état, détachées des composants mutables, et événements typés tels que `EnemyDefeated` ou `CaptureResolved`.
-- La présentation traduit, formate, anime et associe les identifiants aux ressources visuelles. Le moteur n'émet ni HTML ni chemins de sprites.
-- L'UI transmet une intention ; elle ne décide pas d'un dégât, d'un prix, d'une récompense ou de la validité d'une action.
-- Le modèle de présentation peut conserver la sélection d'un onglet et les animations. Il ne maintient pas une seconde copie autoritaire des règles du jeu.
+- Input: typed commands such as `ClickAttack` or `ChangeRoute`. Record their order and their position on the simulation timeline to replay a scenario.
+- Output: state projections detached from mutable components, and typed events such as `EnemyDefeated` or `CaptureResolved`.
+- Presentation handles translation, formatting, animation and mapping identifiers to visual assets. The engine emits neither HTML nor sprite paths.
+- The UI submits an intention. It does not decide damage, prices, rewards or whether an action is valid.
+- The presentation model may own the selected tab and animation state. It does not maintain another authoritative copy of game rules.
 
-Des identifiants de session et des séquences permettent de rejeter un message obsolète et de ne pas rejouer deux fois un événement. Les états intermédiaires peuvent être remplacés par un état plus récent ; les commandes et événements nécessaires à la progression ne doivent pas être perdus par cette optimisation.
+Session identifiers and sequences allow stale messages to be rejected and events to be handled once. Intermediate snapshots may be replaced by a newer snapshot; commands and events required for progression must not be lost through that optimization.
 
-### Deux boucles
+### Two loops
 
-La cible navigateur est une simulation dans un **Web Worker dédié**, avec un hôte direct pour les tests sans navigateur. Le moteur expose une opération d'avancement explicite ; le choix du timer appartient à l'hôte. Un worker qui se contente de poster « tick » au thread UI ne satisfait pas cette cible.
+The browser target runs the simulation inside a **dedicated Web Worker**, with a direct host for tests without a browser. The engine exposes an explicit advance operation; timer selection belongs to the host. A worker that only posts a tick to the UI thread does not meet this target.
 
-La simulation progresse par pas fixes configurés. Le temps monotone de session est séparé du calendrier civil utilisé pour les événements quotidiens. L'heure externe et le générateur aléatoire sont fournis explicitement. À versions de moteur et de données identiques, les mêmes entrées horodatées, le même état initial et le même état aléatoire doivent produire le même résultat.
+Simulation advances in configured fixed steps. Separate monotonic session time from the civil calendar used for daily events. Supply external time and the random generator explicitly. For identical engine and data versions, the same timestamped inputs, initial state and random state must produce the same outcome.
 
-La granularité ne doit pas changer silencieusement le jeu : un tick de 100 ms ne permet pas de fusionner deux clics espacés de 50 ms. Le premier lot doit conserver les instants des commandes et les échéances à l'intérieur du pas, ou démontrer par tests qu'un pas plus fin conserve les comportements attendus.
+Step granularity must not silently change gameplay: a 100 ms tick cannot collapse two clicks spaced 50 ms apart. The first stage must preserve command timestamps and deadlines within a step, or demonstrate through tests that a smaller step preserves the expected behavior.
 
-La présentation utilise sa propre boucle `requestAnimationFrame` et lit le dernier état disponible. Elle peut interpoler une animation, mais ne fait jamais avancer le monde. La fin d'une animation ne valide pas une capture : le résultat et l'échéance sont décidés par la simulation.
+Presentation runs its own `requestAnimationFrame` loop and reads the latest available snapshot. It may interpolate animations but never advances the world. An animation ending does not validate a capture: simulation determines its result and deadline.
 
-Le budget de rattrapage par réveil est borné. Le retard restant doit avoir un traitement explicite, pas être silencieusement supprimé. Les longues absences suivent les règles de progression hors ligne existantes, distinctes de l'activité en direct ; aucun double crédit ne doit être possible au retour. Un worker ne garantit pas que le navigateur continue à exécuter le jeu pendant une mise en veille.
+Bound the catch-up budget per wake-up. Handle remaining time debt explicitly instead of silently discarding it. Long absences follow the existing offline progression rules, which differ from active play; resuming must not credit the same period twice. A worker does not guarantee that the browser will keep running the game while the device sleeps.
 
-Les files et la cadence des projections sont bornées ; leur politique de saturation est testée. `start`, `stop` et `dispose` doivent gérer timers, worker, abonnements et messages tardifs. Une erreur du rendu ne doit pas corrompre la simulation.
+Bound queues and snapshot publication rates, and test their saturation policies. `start`, `stop` and `dispose` must manage timers, workers, subscriptions and late messages. A rendering failure must not corrupt the simulation.
 
-## Organisation proposée
+## Proposed organization
 
-| Répertoire cible | Responsabilité |
+| Target directory | Responsibility |
 | --- | --- |
-| `src/simulation/` | Monde, composants, systèmes regroupés par fonctionnalité, règles et projections ; TypeScript strict, sans DOM ni Knockout. |
-| `src/contracts/` | Commandes, projections, événements et erreurs sérialisables partagés entre simulation et clients. |
-| `src/client/` | Entrées, modèle de présentation, boucle d'affichage, implémentations de rendu. |
-| `src/runtime/` | Assemblage, hôte worker/direct, chargement des fichiers, horloges et stockage navigateur. |
-| `public/config/` | Paramètres de simulation, de combat, de progression et de persistance. |
-| `public/data/` | Catalogues de Pokémon, routes, objets et autres définitions de contenu. |
-| `public/presentation/` | Thèmes, tokens visuels et associations entre identifiants et assets. |
-| `schemas/` | Schémas de validation des configurations, données et sauvegardes. |
+| `src/simulation/` | World, components, systems grouped by feature, rules and projections; strict TypeScript without DOM or Knockout. |
+| `src/contracts/` | Serializable commands, projections, events and errors shared by simulation and clients. |
+| `src/client/` | Input handling, presentation model, display loop and renderer implementations. |
+| `src/runtime/` | Assembly, worker/direct hosts, file loading, clocks and browser storage. |
+| `public/config/` | Simulation, combat, progression and persistence settings. |
+| `public/data/` | Pokemon, route, item and other content catalogs. |
+| `public/presentation/` | Themes, visual tokens and mappings between identifiers and assets. |
+| `schemas/` | Validation schemas for configuration, data and saves. |
 
-Ces répertoires constituent une cible minimale, à introduire quand un premier usage existe. Le nouveau moteur aura une compilation et des tests sans bibliothèque DOM. La CI contrôlera également les imports interdits ; supprimer `dom` du `tsconfig` ne suffit pas si des dépendances réintroduisent des globals.
+These directories form a minimal target and should be introduced when they have their first use. The new engine will compile and run tests without the DOM library. CI will also check forbidden imports; removing `dom` from `tsconfig` is insufficient if dependencies reintroduce browser globals.
 
-Les répertoires globaux historiques restent accessibles uniquement depuis les raccordements de migration. La configuration du build actuel doit exclure explicitement les nouvelles sources de la compilation globale historique pour éviter une double compilation.
+Access to historical global modules is restricted to migration bridges. The existing build configuration must explicitly exclude the new sources from the legacy global compilation to avoid compiling them twice.
 
-## Politique de configuration JSON
+## JSON configuration policy
 
-**Règle : aucune valeur de contenu, d'équilibrage ou de réglage produit ne doit être enfouie dans les systèmes.**
+**Rule: content, balance and product settings must not be buried in systems.**
 
-Exemples de répartition :
+Example allocation:
 
-| Fichier envisagé | Contenu |
+| Proposed file | Contents |
 | --- | --- |
-| `public/config/simulation.json` | Pas de simulation, budgets de rattrapage et cadence des projections. |
-| `public/config/combat.json` | Cadences, limites de clic, coefficients et paramètres de capture. |
-| `public/config/progression.json` | Courbes et paramètres de progression, règles des gains hors ligne. |
-| `public/config/persistence.json` | Fréquence de sauvegarde et paramètres de conservation. |
-| `public/data/pokemon.json` | Identifiants stables, caractéristiques et références aux autres catalogues. |
-| `public/presentation/default-theme.json` | Tokens de couleurs, espacements et durées d'animations configurables. |
+| `public/config/simulation.json` | Simulation step, catch-up budgets and snapshot publication rate. |
+| `public/config/combat.json` | Attack rates, click limits, coefficients and capture settings. |
+| `public/config/progression.json` | Progression curves and parameters, including offline reward rules. |
+| `public/config/persistence.json` | Save frequency and retention settings. |
+| `public/data/pokemon.json` | Stable identifiers, attributes and references to other catalogs. |
+| `public/presentation/default-theme.json` | Configurable color, spacing and animation-duration tokens. |
 
-Les algorithmes restent en TypeScript. Les constantes mathématiques ou structurelles, comme l'élément neutre d'une addition, ne deviennent pas des paramètres. Les unités et versions de protocole restent des constantes nommées lorsqu'elles définissent un contrat. Les textes traduisibles restent dans le système de localisation existant.
+Algorithms remain in TypeScript. Mathematical or structural constants, such as the additive identity, do not become settings. Units and protocol versions remain named constants where they define a contract. Translatable text stays in the existing localization system.
 
-Les comportements configurables utilisent des identifiants connus et validés, associés à du code explicite. Pas de JavaScript dans les JSON, de `eval` ou de langage de règles généraliste construit pour externaliser une formule.
+Configurable behaviors use known, validated identifiers mapped to explicit code. Do not put JavaScript in JSON, use `eval` or build a general-purpose rule language merely to externalize a formula.
 
-Le chargement suit une seule chaîne : lecture → validation structurelle → validation métier et références croisées → données typées en lecture seule → démarrage. Le moteur reçoit les données déjà validées ; ses systèmes n'effectuent pas de `fetch` et ne relisent pas de JSON à chaque tick.
+Use one loading pipeline: read, validate structure, validate business rules and cross-references, produce typed read-only data, then start. The engine receives validated data; its systems do not call `fetch` or reread JSON every tick.
 
-Les schémas contrôlent les champs requis, propriétés inconnues, types, bornes et tailles. La validation métier contrôle notamment les identifiants dupliqués, références inexistantes, probabilités, durées positives et relations entre paramètres. Une politique explicite relie schéma et types TypeScript pour éviter deux définitions divergentes.
+Schemas check required fields, unknown properties, types, ranges and sizes. Business validation checks duplicate identifiers, missing references, probabilities, positive durations and relationships between settings. Establish one explicit policy connecting schemas and TypeScript types to prevent divergent definitions.
 
-Les valeurs par défaut sont dans les fichiers versionnés. Un fichier obligatoire absent ou invalide empêche le démarrage avec un diagnostic précis ; une valeur cachée dans le code ne doit pas masquer le problème. La validation approfondie se fait aux frontières ; les systèmes internes travaillent sur les données validées et maintiennent leurs invariants sans revalider tout le catalogue à chaque tick.
+Defaults belong in versioned files. A missing or invalid required file prevents startup with a precise diagnostic; a hidden code fallback must not conceal the problem. Perform deep validation at boundaries. Internal systems operate on validated data and preserve their invariants without revalidating the entire catalog every tick.
 
-Le build Gulp devra copier `public/**` à la racine de `build`, puis de `docs`. Sur Pages, `public/config/combat.json` sera donc servi sous `/pokeclicker/config/combat.json`, sans le segment `public`. Le chargement utilisera une base d'application explicite, pas un chemin `/config/...` qui pointerait à la racine du domaine.
+The Gulp build must copy `public/**` to the root of `build`, then `docs`. On Pages, `public/config/combat.json` will therefore be served at `/pokeclicker/config/combat.json`, without the `public` segment. Loading must use an explicit application base URL, not `/config/...`, which would address the domain root.
 
-Code et données doivent être versionnés ensemble. Un manifeste de version et des chemins de données versionnés ou empreintés permettront de détecter les mélanges dus au cache. Le chargement charge un ensemble cohérent avant de démarrer ; aucun rechargement à chaud des règles n'est prévu pour le premier lot. Ces fichiers sont publics et ne contiennent aucun secret.
+Version code and data together. A version manifest and versioned or content-hashed data paths should detect incompatible cached combinations. Load a consistent set before startup; runtime rule hot-reloading is outside the first stage. These files are public and contain no secrets.
 
-## Programmation défensive et sauvegardes
+## Defensive programming and saves
 
-- Valider commandes, messages worker, fichiers JSON et sauvegardes avant toute mutation. Rejeter explicitement une action invalide avec une erreur typée et contextualisée.
-- Préserver les invariants : valeurs finies, santé valide, fonds suffisants, quantités et durées autorisées. Une transition invalide ne doit pas être partiellement appliquée.
-- Borner tailles de fichiers, files de commandes et travail de rattrapage. Tester saturation et absence de ressources.
-- Distinguer erreurs attendues et défauts internes. Ne pas avaler une exception pour poursuivre avec un état corrompu ; interrompre proprement le traitement concerné et conserver un diagnostic.
-- Sauvegarder un format versionné avec identifiants stables, progression, échéances et état aléatoire. Ne pas dépendre de l'ordre des entités, des index de tableaux internes ou d'une instance Knockout.
-- Migrer dans une copie validée avant activation, conserver l'original et ne pas l'écraser si l'import échoue. Une sauvegarde issue du nouveau moteur utilise un espace distinct tant que le retour à l'ancien moteur est nécessaire.
-- Nommer précisément nombres et unités (`durationMs`, `probability`, `amount`). Les paramètres de politique métier viennent des JSON ; les validations de cohérence restent du code.
+- Validate commands, worker messages, JSON files and saves before mutation. Reject invalid actions explicitly with typed, contextual errors.
+- Preserve invariants: finite values, valid health, sufficient funds, and permitted quantities and durations. An invalid transition must not be partially applied.
+- Bound file sizes, command queues and catch-up work. Test saturation and missing resources.
+- Distinguish expected errors from internal defects. Do not swallow exceptions and continue with corrupt state; stop the affected processing safely and retain a diagnostic.
+- Save a versioned format with stable identifiers, progression, deadlines and random state. Do not depend on entity order, internal array indexes or Knockout instances.
+- Migrate into a validated copy before activation, retain the original and never overwrite it on import failure. New-engine saves use a separate storage namespace while returning to the old engine must remain possible.
+- Name values and units precisely, such as `durationMs`, `probability` and `amount`. Business policy parameters come from JSON; consistency checks remain code.
 
-## Migration par lots vérifiables
+## Migration stages and acceptance criteria
 
-| Lot | Livrable | Critère de sortie |
+| Stage | Deliverable | Exit criterion |
 | --- | --- | --- |
-| 1. Contrats et référence de comportement | Scénarios de combat représentatifs, fixtures de sauvegardes de test, règles temporelles documentées, configuration initiale avec valeurs existantes et schémas. | Données invalides rejetées en CI ; références croisées et publication sous le sous-chemin Pages vérifiées. |
-| 2. Combat ECS sans affichage | Une route représentative, attaque automatique et clic, défaite, récompense, capture et adversaire suivant ; temps et RNG contrôlés. | Résultats attendus reproductibles, contrôlés avec les scénarios du lot 1, y compris seuils temporels et effets indirects du combat. |
-| 3. Deux présentations du même moteur | Adaptation Knockout et affichage DOM minimal de diagnostic consommant les mêmes contrats. | Changement de rendu sans modification du moteur ; résultats identiques sans rendu et avec des cadences d'affichage différentes. |
-| 4. Worker et raccordement au jeu | Exécution réelle dans le worker, traduction des commandes, import/export et raccordements aux fonctionnalités historiques. | Aucun double tick, double gain ou traitement après arrêt ; cas onglet masqué, reprise, sauvegarde et messages tardifs couverts. |
-| 5. Extension fonctionnelle | Autres combats, portefeuille/progression, ferme, élevage et fonctionnalités restantes, par petites PR. | Une autorité par donnée, scénarios de non-régression et retrait du code historique devenu inutile à chaque lot. |
+| 1. Contracts and behavioral baseline | Representative combat scenarios, test save fixtures, documented timing rules, initial configuration matching existing values, and schemas. | CI rejects invalid data; cross-references and publication under the Pages subpath are verified. |
+| 2. Headless ECS combat | One representative route, automatic and click attacks, defeat, rewards, capture and the next opponent; controlled time and RNG. | Reproducible expected outcomes checked against stage 1 scenarios, including timing boundaries and indirect combat effects. |
+| 3. Two presentations of one engine | A Knockout bridge and a minimal diagnostic DOM display consuming the same contracts. | Renderer replacement without engine changes; identical outcomes without rendering and at different display rates. |
+| 4. Worker and game integration | Actual worker execution, command translation, save import/export and bridges to historical features. | No double ticks, duplicate rewards or processing after shutdown; covered cases include hidden tabs, resuming, saving and late messages. |
+| 5. Feature expansion | Other battles, wallet/progression, farming, breeding and remaining features through small PRs. | One authority per piece of state, regression scenarios and removal of obsolete legacy code at each stage. |
 
-Pendant la transition, une fonctionnalité a un seul propriétaire de l'état. Si le combat ECS émet une récompense encore appliquée par le portefeuille historique, le raccordement enregistre son identifiant et l'applique une fois. Les systèmes historiques correspondants ne doivent pas continuer à modifier ce même combat. Les effets sur statistiques, quêtes, élevage et objets doivent être inventoriés avant d'activer la nouvelle route.
+During migration, each feature has a single state owner. If ECS combat emits a reward still applied by the historical wallet, the bridge records its identifier and applies it once. Corresponding historical systems must not continue mutating that combat. Inventory effects on statistics, quests, breeding and items before enabling the new route.
 
-L'activation sera contrôlée par une option de configuration explicite. Les tests utiliseront des sauvegardes synthétiques ou fournies pour ce travail. Les tests métier ne dépendent pas d'un navigateur ; les tests d'intégration vérifient séparément le protocole, le stockage et l'interface. Les budgets de performance et de taille des projections seront fixés à partir de mesures du jeu actuel.
+Activation is controlled by an explicit configuration option. Tests use synthetic saves or saves provided for this work. Business-rule tests do not require a browser; integration tests separately cover the protocol, storage and interface. Set performance and snapshot-size budgets using measurements of the existing game.
 
-## Choix encore ouverts
+## Open decisions
 
-- Bibliothèque ECS ou petit noyau interne : comparer sur le premier scénario, avec critères de typage, déterminisme, sérialisation, maintenance et coût. Ne pas développer un moteur générique complet avant cette mesure.
-- Technologie du prochain rendu : elle n'est pas nécessaire pour définir les contrats ; Knockout peut servir à la transition.
-- Granularité du pas et politique détaillée de rattrapage : décider à partir des contraintes de clic/capture, du comportement hors ligne existant et des mesures.
+- ECS library or small internal core: compare on the first scenario using typing, determinism, serialization, maintenance and runtime cost as criteria. Do not build a complete generic engine before measuring the need.
+- Next renderer technology: it is not required to define the contracts; Knockout can support the transition.
+- Step granularity and detailed catch-up policy: decide using click/capture constraints, existing offline behavior and measurements.
 
-## Références
+## References
 
-- [ECS : entités, composants et systèmes — Unity](https://docs.unity3d.com/Packages/com.unity.entities@1.0/manual/concepts-intro.html), référence conceptuelle, sans choix de dépendance Unity.
-- [Game Loop — Robert Nystrom](https://gameprogrammingpatterns.com/game-loop.html), pour séparer l'avancement du jeu du rythme du rendu.
-- [requestAnimationFrame — MDN](https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame), pour son lien avec le rafraîchissement et sa suspension en arrière-plan.
-- [JSON Schema : objets, champs requis et propriétés supplémentaires](https://json-schema.org/understanding-json-schema/reference/object).
+- [ECS entities, components and systems — Unity](https://docs.unity3d.com/Packages/com.unity.entities@1.0/manual/concepts-intro.html), a conceptual reference rather than a choice of Unity dependency.
+- [Game Loop — Robert Nystrom](https://gameprogrammingpatterns.com/game-loop.html), on separating game progression from rendering frequency.
+- [requestAnimationFrame — MDN](https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame), on refresh timing and suspension in background tabs.
+- [JSON Schema: objects, required fields and additional properties](https://json-schema.org/understanding-json-schema/reference/object).
