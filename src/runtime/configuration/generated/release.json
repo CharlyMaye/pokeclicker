@@ -1,13 +1,13 @@
 {
-  "version": "2e1c4c36dcb2dc59b29987960f8a41ce8159935ec3564d4b3d68f3005533cd6a",
+  "version": "53c032eb5510cd0ee7a6e5aba2052889f6b64e6bffc0e4a987d59ac56be4b1cf",
   "files": {
     "combat": {
-      "path": "configuration/2e1c4c36dcb2dc59b29987960f8a41ce8159935ec3564d4b3d68f3005533cd6a/combat.json",
+      "path": "configuration/53c032eb5510cd0ee7a6e5aba2052889f6b64e6bffc0e4a987d59ac56be4b1cf/combat.json",
       "sha256": "58b0dcf173f18343b9f673a6829804dc7af9600df2d71b4bbfdf98dd25d179fe"
     },
     "simulation": {
-      "path": "configuration/2e1c4c36dcb2dc59b29987960f8a41ce8159935ec3564d4b3d68f3005533cd6a/simulation.json",
-      "sha256": "803963819323f074ba0a0b56d6bbd26404fd4c4e55a212e4c00aee617e429e2b"
+      "path": "configuration/53c032eb5510cd0ee7a6e5aba2052889f6b64e6bffc0e4a987d59ac56be4b1cf/simulation.json",
+      "sha256": "be1048393c473f8c6b67e17cc26b8cc32a6612dae670f4ccc12b386bd8817147"
     }
   }
 }

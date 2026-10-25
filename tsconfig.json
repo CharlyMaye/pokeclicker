@@ -21,6 +21,7 @@
     "src/contracts",
     "src/runtime",
     "tests",
-    "src/simulation"
+    "src/simulation",
+    "src/client"
   ]
 }

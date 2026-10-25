@@ -9,11 +9,12 @@
     "maxStepsPerAdvance",
     "maxQueuedCommands",
     "maxTransitionsPerStep",
-    "maxCommandLeadMs"
+    "maxCommandLeadMs",
+    "maxPendingOutputs"
   ],
   "properties": {
     "schemaVersion": {
-      "const": 2
+      "const": 3
     },
     "stepMs": {
       "type": "integer",
@@ -36,6 +37,11 @@
       "maximum": 9007199254740991
     },
     "maxCommandLeadMs": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "maxPendingOutputs": {
       "type": "integer",
       "minimum": 1,
       "maximum": 9007199254740991

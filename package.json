@@ -1,7 +1,7 @@
 {
   "name": "pokeclicker",
   "version": "0.10.26",
-  "description": "PokéClicker repository",
+  "description": "Pok\u00e9Clicker repository",
   "main": "index.js",
   "scripts": {
     "start": "cross-env NODE_ENV=development gulp",
@@ -10,8 +10,8 @@
     "test-scripts": "gulp scripts && npm run vitest-nocoverage",
     "vitest": "vitest --run",
     "vitest-nocoverage": "vitest --run --coverage false",
-    "eslint": "eslint --ext ts ./src/scripts ./src/modules && eslint --ext ts,js ./src/runtime ./src/contracts && eslint --ext ts ./src/simulation",
-    "eslint-fix": "eslint --ext ts --fix ./src/scripts ./src/modules && eslint --ext ts,js --fix ./src/runtime ./src/contracts && eslint --ext ts --fix ./src/simulation",
+    "eslint": "eslint --ext ts ./src/scripts ./src/modules && eslint --ext ts,js ./src/runtime ./src/contracts && eslint --ext ts ./src/simulation && eslint --ext ts ./src/client",
+    "eslint-fix": "eslint --ext ts --fix ./src/scripts ./src/modules && eslint --ext ts,js --fix ./src/runtime ./src/contracts && eslint --ext ts --fix ./src/simulation && eslint --ext ts --fix ./src/client",
     "stylelint": "stylelint \"./src/**/*.less\" --cache",
     "stylelint-fix": "npm run stylelint -- --fix",
     "website": "npm run tl:update && npm test && cross-env NODE_ENV=production gulp website",
@@ -25,7 +25,7 @@
     "test:refactor": "npm run check:config-generated && npm run typecheck:refactor && npm run validate:config && npm run test:config && npm run test:runtime && npm run test:simulation && npm run test:baseline",
     "generate:config": "node tools/generate-configuration.cjs",
     "check:config-generated": "node tools/generate-configuration.cjs --check",
-    "typecheck:refactor": "tsc -p tsconfig.contracts.json && tsc -p tsconfig.runtime.json && tsc -p tsconfig.simulation.json",
+    "typecheck:refactor": "tsc -p tsconfig.contracts.json && tsc -p tsconfig.runtime.json && tsc -p tsconfig.simulation.json && tsc -p tsconfig.client.json",
     "test:runtime": "vitest run --config vitest.runtime.config.js",
     "test:simulation": "vitest run --config vitest.simulation.config.js"
   },
