@@ -1,0 +1,259 @@
+{
+  "formatVersion": 1,
+  "click": {
+    "baseAttack": 10,
+    "multiplier": 1
+  },
+  "opponents": [
+    {
+      "location": {
+        "region": 0,
+        "route": 1
+      },
+      "pokemonId": 16,
+      "party": {
+        "contributors": [
+          {
+            "pokemonId": 1,
+            "attack": 10,
+            "active": true,
+            "breeding": false,
+            "includeBreeding": false,
+            "typeMultiplier": 1,
+            "regionMultiplier": 1,
+            "weatherMultipliers": [],
+            "fluteMultipliers": [],
+            "zMoveMultiplier": 1
+          }
+        ],
+        "multiplier": 1,
+        "includeTempBonuses": true
+      }
+    },
+    {
+      "location": {
+        "region": 0,
+        "route": 1
+      },
+      "pokemonId": 16.01,
+      "party": {
+        "contributors": [
+          {
+            "pokemonId": 1,
+            "attack": 10,
+            "active": true,
+            "breeding": false,
+            "includeBreeding": false,
+            "typeMultiplier": 1,
+            "regionMultiplier": 1,
+            "weatherMultipliers": [],
+            "fluteMultipliers": [],
+            "zMoveMultiplier": 1
+          }
+        ],
+        "multiplier": 1,
+        "includeTempBonuses": true
+      }
+    },
+    {
+      "location": {
+        "region": 0,
+        "route": 2
+      },
+      "pokemonId": 19,
+      "party": {
+        "contributors": [
+          {
+            "pokemonId": 1,
+            "attack": 20,
+            "active": true,
+            "breeding": false,
+            "includeBreeding": false,
+            "typeMultiplier": 1,
+            "regionMultiplier": 1,
+            "weatherMultipliers": [],
+            "fluteMultipliers": [],
+            "zMoveMultiplier": 1
+          }
+        ],
+        "multiplier": 1,
+        "includeTempBonuses": true
+      }
+    },
+    {
+      "location": {
+        "region": 0,
+        "route": 2
+      },
+      "pokemonId": 19.01,
+      "party": {
+        "contributors": [
+          {
+            "pokemonId": 1,
+            "attack": 20,
+            "active": true,
+            "breeding": false,
+            "includeBreeding": false,
+            "typeMultiplier": 1,
+            "regionMultiplier": 1,
+            "weatherMultipliers": [],
+            "fluteMultipliers": [],
+            "zMoveMultiplier": 1
+          }
+        ],
+        "multiplier": 1,
+        "includeTempBonuses": true
+      }
+    },
+    {
+      "location": {
+        "region": 0,
+        "route": 3
+      },
+      "pokemonId": 16,
+      "party": {
+        "contributors": [
+          {
+            "pokemonId": 1,
+            "attack": 5,
+            "active": true,
+            "breeding": false,
+            "includeBreeding": false,
+            "typeMultiplier": 1,
+            "regionMultiplier": 1,
+            "weatherMultipliers": [],
+            "fluteMultipliers": [],
+            "zMoveMultiplier": 1
+          }
+        ],
+        "multiplier": 1,
+        "includeTempBonuses": true
+      }
+    },
+    {
+      "location": {
+        "region": 0,
+        "route": 3
+      },
+      "pokemonId": 16.01,
+      "party": {
+        "contributors": [
+          {
+            "pokemonId": 1,
+            "attack": 5,
+            "active": true,
+            "breeding": false,
+            "includeBreeding": false,
+            "typeMultiplier": 1,
+            "regionMultiplier": 1,
+            "weatherMultipliers": [],
+            "fluteMultipliers": [],
+            "zMoveMultiplier": 1
+          }
+        ],
+        "multiplier": 1,
+        "includeTempBonuses": true
+      }
+    },
+    {
+      "location": {
+        "region": 0,
+        "route": 4
+      },
+      "pokemonId": 21,
+      "party": {
+        "contributors": [
+          {
+            "pokemonId": 1,
+            "attack": 10,
+            "active": true,
+            "breeding": false,
+            "includeBreeding": false,
+            "typeMultiplier": 1,
+            "regionMultiplier": 1,
+            "weatherMultipliers": [],
+            "fluteMultipliers": [],
+            "zMoveMultiplier": 1
+          }
+        ],
+        "multiplier": 1,
+        "includeTempBonuses": true
+      }
+    },
+    {
+      "location": {
+        "region": 0,
+        "route": 4
+      },
+      "pokemonId": 21.01,
+      "party": {
+        "contributors": [
+          {
+            "pokemonId": 1,
+            "attack": 10,
+            "active": true,
+            "breeding": false,
+            "includeBreeding": false,
+            "typeMultiplier": 1,
+            "regionMultiplier": 1,
+            "weatherMultipliers": [],
+            "fluteMultipliers": [],
+            "zMoveMultiplier": 1
+          }
+        ],
+        "multiplier": 1,
+        "includeTempBonuses": true
+      }
+    },
+    {
+      "location": {
+        "region": 1,
+        "route": 1
+      },
+      "pokemonId": 161,
+      "party": {
+        "contributors": [
+          {
+            "pokemonId": 1,
+            "attack": 10,
+            "active": true,
+            "breeding": false,
+            "includeBreeding": false,
+            "typeMultiplier": 1,
+            "regionMultiplier": 1,
+            "weatherMultipliers": [],
+            "fluteMultipliers": [],
+            "zMoveMultiplier": 1
+          }
+        ],
+        "multiplier": 1,
+        "includeTempBonuses": true
+      }
+    },
+    {
+      "location": {
+        "region": 1,
+        "route": 1
+      },
+      "pokemonId": 161.01,
+      "party": {
+        "contributors": [
+          {
+            "pokemonId": 1,
+            "attack": 10,
+            "active": true,
+            "breeding": false,
+            "includeBreeding": false,
+            "typeMultiplier": 1,
+            "regionMultiplier": 1,
+            "weatherMultipliers": [],
+            "fluteMultipliers": [],
+            "zMoveMultiplier": 1
+          }
+        ],
+        "multiplier": 1,
+        "includeTempBonuses": true
+      }
+    }
+  ]
+}
