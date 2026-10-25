@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Simulation configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "stepMs"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "stepMs": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Route combat configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "autoAttackIntervalMs", "clickAttackCooldownMs"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "autoAttackIntervalMs": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+    "clickAttackCooldownMs": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }
+  }
+}

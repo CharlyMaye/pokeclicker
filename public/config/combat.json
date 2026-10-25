@@ -1,0 +1,5 @@
+{
+  "schemaVersion": 1,
+  "autoAttackIntervalMs": 1000,
+  "clickAttackCooldownMs": 50
+}
