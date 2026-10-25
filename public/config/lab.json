@@ -1,0 +1,178 @@
+{
+  "schemaVersion": 1,
+  "startupTimeoutMs": 10000,
+  "requestTimeoutMs": 5000,
+  "maxCheckpointBytes": 1048576,
+  "saveSlot": "combat-lab",
+  "seed": 123,
+  "initialRenderer": "knockout",
+  "scenario": {
+    "initialLocation": {
+      "region": 0,
+      "route": 1
+    },
+    "routes": [
+      {
+        "location": {
+          "region": 0,
+          "route": 1
+        },
+        "unlocked": true,
+        "opponents": [
+          {
+            "pokemonId": 16,
+            "health": 30,
+            "autoAttackDamage": 10,
+            "moneyReward": 10,
+            "experienceReward": 12,
+            "dungeonTokenReward": 2,
+            "captureProbability": 0.5,
+            "captureDurationMs": 200
+          }
+        ]
+      },
+      {
+        "location": {
+          "region": 0,
+          "route": 2
+        },
+        "unlocked": true,
+        "opponents": [
+          {
+            "pokemonId": 19,
+            "health": 40,
+            "autoAttackDamage": 20,
+            "moneyReward": 25,
+            "experienceReward": 18,
+            "dungeonTokenReward": 9,
+            "captureProbability": 0.1,
+            "captureDurationMs": 450
+          }
+        ]
+      },
+      {
+        "location": {
+          "region": 0,
+          "route": 3
+        },
+        "unlocked": true,
+        "opponents": [
+          {
+            "pokemonId": 16,
+            "health": 50,
+            "autoAttackDamage": 5,
+            "moneyReward": 30,
+            "experienceReward": 20,
+            "dungeonTokenReward": 11,
+            "captureProbability": 0.75,
+            "captureDurationMs": 300
+          }
+        ]
+      },
+      {
+        "location": {
+          "region": 0,
+          "route": 4
+        },
+        "unlocked": false,
+        "opponents": [
+          {
+            "pokemonId": 21,
+            "health": 60,
+            "autoAttackDamage": 10,
+            "moneyReward": 40,
+            "experienceReward": 25,
+            "dungeonTokenReward": 12,
+            "captureProbability": 0.5,
+            "captureDurationMs": 500
+          }
+        ]
+      },
+      {
+        "location": {
+          "region": 1,
+          "route": 1
+        },
+        "unlocked": true,
+        "opponents": [
+          {
+            "pokemonId": 161,
+            "health": 70,
+            "autoAttackDamage": 10,
+            "moneyReward": 50,
+            "experienceReward": 30,
+            "dungeonTokenReward": 13,
+            "captureProbability": 0.5,
+            "captureDurationMs": 500
+          }
+        ]
+      }
+    ],
+    "clickAttackDamage": 10,
+    "clickAttacksAllowed": true,
+    "initialPokeballs": 2
+  },
+  "combatLabels": {
+    "title": "Route combat",
+    "region": "Region",
+    "route": "Route",
+    "status": "Status",
+    "opponent": "Pokemon ID",
+    "health": "Health",
+    "capture": "Capture remaining",
+    "waiting": "Waiting for a snapshot",
+    "idle": "Idle",
+    "fighting": "Fighting",
+    "capturing": "Capturing",
+    "unavailable": "Unavailable",
+    "milliseconds": "ms"
+  },
+  "text": {
+    "title": "ECS Combat Lab",
+    "intro": "An isolated combat prototype with test balance. Your legacy game and saves are separate.",
+    "start": "Start combat",
+    "pause": "Pause",
+    "attack": "Click attack",
+    "save": "Save and pause",
+    "load": "Reload saved progress",
+    "recover": "Restore previous save",
+    "renderer": "Presentation",
+    "route": "Route",
+    "dom": "Diagnostic view",
+    "knockout": "Combat panel",
+    "loading": "Loading combat\u2026",
+    "busy": "Working\u2026",
+    "running": "Combat is running",
+    "stopped": "Combat is paused",
+    "saved": "Checkpoint saved",
+    "ready": "Ready to start",
+    "failed": "Action failed",
+    "noSave": "No saved checkpoint is available.",
+    "confirmLoad": "Reloading discards unsaved progress. Continue?",
+    "confirmRecover": "Restoring the previous save discards newer progress. Continue?",
+    "confirm": "Continue",
+    "cancel": "Cancel",
+    "back": "Back to the legacy game",
+    "status": "Session status",
+    "hidden": "Paused because this page is hidden. Start combat to resume.",
+    "storageNotice": "Saving pauses combat. Reload or restore only when you want to replace this session.",
+    "failedStartup": "The combat lab could not start. Check the details below.",
+    "rendererNotice": "Changing the presentation preserves the active combat session.",
+    "unsupported": "This browser cannot create the required combat worker."
+  },
+  "theme": {
+    "background": "#101827",
+    "surface": "#1b293d",
+    "text": "#edf4ff",
+    "muted": "#a4b5ce",
+    "accent": "#87d7a2",
+    "outline": "#6998cc",
+    "gapRem": 1,
+    "paddingRem": 1.5,
+    "radiusRem": 0.8,
+    "panelMinRem": 18,
+    "maxWidthRem": 72,
+    "fontSizeRem": 1,
+    "lineHeight": 1.5
+  }
+}

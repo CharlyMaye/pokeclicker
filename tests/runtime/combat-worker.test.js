@@ -326,3 +326,17 @@ describe('browser worker ownership', () => {
         await expect(createBrowserCombatHost(new URL('https://secret@example.test/worker.js'), { sessionId: 'worker', session, ...policy })).rejects.toThrow('credentials');
     });
 });
+
+describe('worker fault notification', () => {
+    it('notifies once after termination and preserves failure if the observer throws', async () => {
+        const observed = [];
+        let host;
+        const context = await started({ onFault(error) { observed.push({ error, state: host.state }); throw new Error('observer'); } });
+        host = context.host;
+        context.link.ports[1].send({ invalid: true }); context.link.flush();
+        expect(observed).toHaveLength(1); expect(observed[0].state).toBe('faulted');
+        expect(host.fault).toBe(observed[0].error); expect(host.fault.message).not.toBe('observer');
+        context.link.ports[1].send({ invalid: true }); context.link.flush(); host.dispose();
+        expect(observed).toHaveLength(1);
+    });
+});

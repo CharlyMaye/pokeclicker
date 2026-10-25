@@ -79,7 +79,12 @@ async function readFile(
 }
 
 /** Load a complete configuration set before constructing the simulation. */
-export async function loadConfiguration(baseUrl: string, options: ConfigurationLoadOptions): Promise<Configuration> {
+export async function loadConfigurationDocuments<T>(
+    baseUrl: string,
+    files: Readonly<Record<string, { path: string; sha256: string }>>,
+    options: ConfigurationLoadOptions,
+    validate: (documents: Record<string, unknown>) => T
+): Promise<T> {
     let base: URL;
     try {
         base = new URL(baseUrl);
@@ -108,14 +113,20 @@ export async function loadConfiguration(baseUrl: string, options: ConfigurationL
         if (controller.signal.aborted) {
             throw new Error('Aborted');
         }
-        file = release.files.combat.path;
-        const combat = await readFile(base, release.files.combat, fetchFile, controller.signal);
-        file = release.files.simulation.path;
-        const simulation = await readFile(base, release.files.simulation, fetchFile, controller.signal);
+        const documents: Record<string, unknown> = {};
+        for (const [name, descriptor] of Object.entries(files)) {
+            const url = new URL(descriptor.path, base);
+            if (url.origin !== base.origin || !url.pathname.startsWith(base.pathname) || url.search || url.hash
+                || !/^[a-f0-9]{64}$/.test(descriptor.sha256)) {
+                throw new ConfigurationLoadError('invalid-options', name, 'Invalid release document location or digest');
+            }
+            file = descriptor.path;
+            documents[name] = await readFile(base, descriptor, fetchFile, controller.signal);
+        }
         if (controller.signal.aborted) {
             throw new Error('Aborted');
         }
-        return validateConfiguration({ combat, simulation });
+        return validate(documents);
     } catch (error) {
         if (controller.signal.aborted) {
             throw new ConfigurationLoadError(timedOut ? 'timeout' : 'aborted', file, timedOut ? 'Startup budget exceeded' : 'Loading cancelled');
@@ -132,4 +143,9 @@ export async function loadConfiguration(baseUrl: string, options: ConfigurationL
         options.signal?.removeEventListener('abort', abort);
         controller.abort();
     }
+}
+
+export function loadConfiguration(baseUrl: string, options: ConfigurationLoadOptions): Promise<Configuration> {
+    return loadConfigurationDocuments(baseUrl, { combat: release.files.combat, simulation: release.files.simulation }, options,
+        data => validateConfiguration({ combat: data.combat, simulation: data.simulation }));
 }
