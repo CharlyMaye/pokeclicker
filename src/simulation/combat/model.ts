@@ -12,20 +12,33 @@ export interface OpponentDefinition {
     readonly captureDurationMs: number;
 }
 
-export interface CombatRoute {
+interface RouteDefinition {
     readonly location: RouteReference;
     readonly opponents: readonly OpponentDefinition[];
     readonly unlocked: boolean;
 }
 
-/** Resolved session inputs, not the legacy save or full Pokemon catalog format. */
-export interface CombatScenario {
+export interface WeightedEncounter {
+    readonly pokemonId: number;
+    readonly weight: number;
+}
+
+export interface UniformCombatRoute extends RouteDefinition { readonly encounters?: never }
+export interface WeightedCombatRoute extends RouteDefinition { readonly encounters: readonly WeightedEncounter[] }
+export type CombatRoute = UniformCombatRoute | WeightedCombatRoute;
+
+interface ScenarioDefinition {
     readonly initialLocation: RouteReference;
-    readonly routes: readonly CombatRoute[];
     readonly clickAttackDamage: number;
     readonly clickAttacksAllowed: boolean;
     readonly initialPokeballs: number;
 }
+
+/** Resolved session inputs. Unversioned scenarios retain their original uniform selection. */
+export type CombatScenario = ScenarioDefinition & (
+    { readonly formatVersion?: never; readonly routes: readonly UniformCombatRoute[] }
+    | { readonly formatVersion: 2; readonly routes: readonly WeightedCombatRoute[] }
+);
 
 export type RandomStep = (state: number) => Readonly<{ state: number; value: number }>;
 export type Entity = number;
