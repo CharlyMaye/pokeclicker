@@ -9,6 +9,8 @@ const { PresentationLoop } = require('../../src/client/combat/PresentationLoop.t
 const combat = require('../../public/config/combat.json');
 const simulation = require('../../public/config/simulation.json');
 const scenario = require('../fixtures/simulation/route-transitions.json');
+const { compileRouteScenario } = require('../../src/simulation/content/compileRouteScenario.ts');
+const compiledScenario = compileRouteScenario(require('../fixtures/simulation/route-content.json'), require('../../public/config/route-health.json'));
 const weightedScenario = require('../fixtures/simulation/weighted-encounters.json');
 const policy = require('../fixtures/runtime/worker-policy.json');
 const session = { configuration: { combat, simulation }, scenario, seed: 123 };
@@ -100,7 +102,7 @@ test('native worker timers continue while the main thread is blocked, then respe
 });
 
 
-for (const [label, definition] of [['uniform', scenario], ['weighted', weightedScenario]]) {
+for (const [label, definition] of [['uniform', scenario], ['weighted', weightedScenario], ['compiled', compiledScenario]]) {
     test(`save, terminate and restore the emitted ${label} worker without changing combat outcomes`, { timeout: 15000 }, async t => {
         const { CheckpointStore } = require('../../src/runtime/persistence/CheckpointStore.ts');
         const storagePolicy = require('../fixtures/runtime/checkpoint-policy.json');

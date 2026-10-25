@@ -11,7 +11,7 @@ export function loadLabConfiguration(baseUrl: string, options: ConfigurationLoad
             throw new ConfigurationLoadError('invalid-config', 'lab', error instanceof Error ? error.message : 'Invalid lab configuration');
         }
     }
-    return loadConfigurationDocuments(baseUrl, release.files, options, documents => Object.freeze({
+    return loadConfigurationDocuments(baseUrl, { combat: release.files.combat, simulation: release.files.simulation, lab: release.files.lab }, options, documents => Object.freeze({
         configuration: validateConfiguration({ combat: documents.combat, simulation: documents.simulation }),
         lab: parseLab(documents.lab),
     }));

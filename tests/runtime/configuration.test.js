@@ -60,7 +60,7 @@ describe('runtime configuration boundary', () => {
         const bundle = await loadLabConfiguration(`${origin}${prefix}`, { timeoutMs: 5000 });
         expect(bundle.lab).toEqual(JSON.parse(source('lab')));
         expect(bundle.configuration).toEqual({ combat: JSON.parse(source('combat')), simulation: JSON.parse(source('simulation')) });
-        expect(requested.slice(before)).toEqual(Object.values(release.files).map(file => `${prefix}${file.path}`));
+        expect(requested.slice(before)).toEqual([release.files.combat, release.files.simulation, release.files.lab].map(file => `${prefix}${file.path}`));
     });
 
     it.each(['relative/', 'file:///tmp/', 'https://example.com/pokeclicker', 'https://example.com/?x=1', 'https://user@example.com/'])('rejects invalid base URL %s before fetching', async base => {

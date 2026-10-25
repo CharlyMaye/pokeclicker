@@ -1,17 +1,21 @@
 {
-  "version": "9ac855aacf0b02788fb7c9f25336aa708d25a23f99662245bc487c47b43495fe",
+  "version": "fb0d2dcbdfabfc80ebfc66b608bf24105c96b4f73d07a68c116b905dad555247",
   "files": {
     "combat": {
-      "path": "configuration/9ac855aacf0b02788fb7c9f25336aa708d25a23f99662245bc487c47b43495fe/combat.json",
+      "path": "configuration/fb0d2dcbdfabfc80ebfc66b608bf24105c96b4f73d07a68c116b905dad555247/combat.json",
       "sha256": "58b0dcf173f18343b9f673a6829804dc7af9600df2d71b4bbfdf98dd25d179fe"
     },
     "simulation": {
-      "path": "configuration/9ac855aacf0b02788fb7c9f25336aa708d25a23f99662245bc487c47b43495fe/simulation.json",
+      "path": "configuration/fb0d2dcbdfabfc80ebfc66b608bf24105c96b4f73d07a68c116b905dad555247/simulation.json",
       "sha256": "be1048393c473f8c6b67e17cc26b8cc32a6612dae670f4ccc12b386bd8817147"
     },
     "lab": {
-      "path": "configuration/9ac855aacf0b02788fb7c9f25336aa708d25a23f99662245bc487c47b43495fe/lab.json",
+      "path": "configuration/fb0d2dcbdfabfc80ebfc66b608bf24105c96b4f73d07a68c116b905dad555247/lab.json",
       "sha256": "d97898c4eb25f79f373e9f6e6e4b4888d82f27df059533959a9376b0c7a5d4a6"
+    },
+    "route-health": {
+      "path": "configuration/fb0d2dcbdfabfc80ebfc66b608bf24105c96b4f73d07a68c116b905dad555247/route-health.json",
+      "sha256": "f6ac4c36d14d2061b6257ee0ad450708b4f6c8c187120531fb89727195d27c5a"
     }
   }
 }

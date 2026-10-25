@@ -47,31 +47,40 @@ export function selectOpponent(route: CombatRoute, draw: number): OpponentDefini
     return definition;
 }
 
-/** Resolve one eligibility snapshot; no globals, requirements, clock or renderer are consulted. */
-export function resolveRouteEncounterPools(value: unknown, access: unknown): readonly WeightedEncounter[] {
+export interface RouteEncounterPools {
+    readonly land: readonly number[];
+    readonly water: readonly number[];
+    readonly headbutt: readonly number[];
+    readonly ordinaryWeight: number;
+    readonly special: readonly Readonly<{ pokemonIds: readonly number[]; weight: number; available: boolean }>[];
+}
+
+export function parseRouteEncounterPools(value: unknown): RouteEncounterPools {
     const pools = dataObject(value, ['land', 'water', 'headbutt', 'special', 'ordinaryWeight'], 'encounter pools');
-    const eligibility = dataObject(access, ['waterUnlocked', 'includeHeadbutt'], 'encounter access');
-    if (typeof eligibility.waterUnlocked !== 'boolean' || typeof eligibility.includeHeadbutt !== 'boolean') {
-        throw new SimulationInputError('invalid-input', 'Encounter access flags must be booleans');
-    }
-    const ordinaryWeight = weight(pools.ordinaryWeight);
-    const ordinary = (input: unknown) => Array.from(dataArray(input, 'ordinary pool'), pokemonId => ({ pokemonId: catalogId(pokemonId), weight: ordinaryWeight }));
-    const land = ordinary(pools.land);
-    const water = ordinary(pools.water);
-    const headbutt = ordinary(pools.headbutt);
+    const ids = (input: unknown) => Object.freeze(Array.from(dataArray(input, 'pool IDs'), catalogId));
     const special = Array.from(dataArray(pools.special, 'special pools'), input => {
         const group = dataObject(input, ['pokemonIds', 'weight', 'available'], 'special pool');
         if (typeof group.available !== 'boolean') {
             throw new SimulationInputError('invalid-input', 'Special pool availability must be boolean');
         }
-        const groupWeight = weight(group.weight);
-        const entries = Array.from(dataArray(group.pokemonIds, 'special pool IDs'), pokemonId => ({ pokemonId: catalogId(pokemonId), weight: groupWeight }));
-        return group.available ? entries : [];
+        return Object.freeze({ pokemonIds: ids(group.pokemonIds), weight: weight(group.weight), available: group.available });
     });
+    return Object.freeze({ land: ids(pools.land), water: ids(pools.water), headbutt: ids(pools.headbutt),
+        ordinaryWeight: weight(pools.ordinaryWeight), special: Object.freeze(special) });
+}
+
+/** Resolve one eligibility snapshot; no globals, requirements, clock or renderer are consulted. */
+export function resolveRouteEncounterPools(value: unknown, access: unknown): readonly WeightedEncounter[] {
+    const pools = parseRouteEncounterPools(value);
+    const eligibility = dataObject(access, ['waterUnlocked', 'includeHeadbutt'], 'encounter access');
+    if (typeof eligibility.waterUnlocked !== 'boolean' || typeof eligibility.includeHeadbutt !== 'boolean') {
+        throw new SimulationInputError('invalid-input', 'Encounter access flags must be booleans');
+    }
+    const ordinary = (ids: readonly number[]) => ids.map(pokemonId => ({ pokemonId, weight: pools.ordinaryWeight }));
     return validateEncounterTable([
-        ...land,
-        ...(eligibility.waterUnlocked || land.length === 0 ? water : []),
-        ...(eligibility.includeHeadbutt ? headbutt : []),
-        ...special.flat(),
+        ...ordinary(pools.land),
+        ...(eligibility.waterUnlocked || pools.land.length === 0 ? ordinary(pools.water) : []),
+        ...(eligibility.includeHeadbutt ? ordinary(pools.headbutt) : []),
+        ...pools.special.filter(group => group.available).flatMap(group => group.pokemonIds.map(pokemonId => ({ pokemonId, weight: group.weight }))),
     ]);
 }

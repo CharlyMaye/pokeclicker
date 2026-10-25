@@ -8,7 +8,7 @@ export { dataArray, dataObject, safeInteger } from './input';
 // Algorithm representation limit, not a gameplay setting.
 export const MAX_RANDOM_STATE = 2 ** 32 - 1;
 
-function opponent(value: unknown): OpponentDefinition {
+export function validateOpponent(value: unknown): OpponentDefinition {
     const data = dataObject(value, [
         'pokemonId', 'health', 'autoAttackDamage', 'moneyReward', 'experienceReward',
         'dungeonTokenReward', 'captureProbability', 'captureDurationMs',
@@ -42,7 +42,7 @@ function route(value: unknown, weighted: boolean): UniformCombatRoute | Weighted
     if (!Array.isArray(data.opponents) || data.opponents.length === 0 || typeof data.unlocked !== 'boolean') {
         throw new SimulationInputError('invalid-input', 'Expected a nonempty opponent list and boolean unlocked');
     }
-    const opponents = Array.from(dataArray(data.opponents, 'opponents'), opponent);
+    const opponents = Array.from(dataArray(data.opponents, 'opponents'), validateOpponent);
     if (new Set(opponents.map(entry => entry.pokemonId)).size !== opponents.length) {
         throw new SimulationInputError('invalid-input', 'Opponent catalog IDs must be unique within a route');
     }
