@@ -194,3 +194,5 @@ The [combat lab](combat-lab.md) now connects worker combat, replaceable renderer
 The [live progression milestone](live-progression.md) now carries accumulated rewards, capture inventory and route totals in each committed worker frame, displays them in both presentations and restores them before the first worker wake. This is prototype-owned progress; historical wallet/party and indirect effects still require explicit ownership and parity work.
 
 The [portable checkpoint milestone](portable-checkpoints.md) adds file export, validated preview and confirmed import across ECS sessions, completing the prototype file-transfer path within stage 4. Legacy-save migration and historical feature ownership remain separate acceptance work.
+
+The [weighted encounter milestone](weighted-encounters.md) adds explicit weighted scenario data and a pure route-pool resolver, with differential legacy selection checks and worker checkpoint replay. Production catalog/stat resolution and dynamic requirement updates remain outstanding; existing lab configuration and saves retain uniform selection.

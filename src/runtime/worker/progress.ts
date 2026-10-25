@@ -6,7 +6,7 @@ import type { AdvanceResult } from '../../simulation/combat/RouteCombatSimulatio
 /** Validate membership and consistency against the initialized session, without granting rewards. */
 export function verifySessionProgress(progress: CombatProgress, snapshot: CombatSnapshot, scenario: CombatScenario, eventSequence: number, outcomeSequence: number): void {
     const catalog = new Set(scenario.routes.flatMap(route => route.opponents.map(opponent => opponent.pokemonId)));
-    const routes = new Set(scenario.routes.filter(route => route.unlocked && route.location.region === scenario.initialLocation.region)
+    const routes = new Set([...scenario.routes].filter(route => route.unlocked && route.location.region === scenario.initialLocation.region)
         .map(route => `${route.location.region}:${route.location.route}`));
     const attempts = Math.min(progress.defeats, scenario.initialPokeballs);
     const pending = snapshot.encounter.phase === 'capturing' ? 1 : 0;

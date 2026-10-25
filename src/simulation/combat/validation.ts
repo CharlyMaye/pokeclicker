@@ -1,60 +1,24 @@
 import type { RouteReference } from '../../contracts/combat-protocol';
-import { CombatRoute, CombatScenario, OpponentDefinition, RandomStep, SimulationInputError } from './model';
+import { CombatScenario, OpponentDefinition, RandomStep, SimulationInputError, UniformCombatRoute, WeightedCombatRoute } from './model';
 import { findRoute, routeKey } from './routes';
+import { catalogId, dataArray, dataObject, safeInteger } from './input';
+import { validateEncounterTable } from './encounters';
+export { dataArray, dataObject, safeInteger } from './input';
 
 // Algorithm representation limit, not a gameplay setting.
 export const MAX_RANDOM_STATE = 2 ** 32 - 1;
-
-export function safeInteger(value: unknown, label: string, minimum = 0): number {
-    if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < minimum) {
-        throw new SimulationInputError('invalid-input', `${label} must be a safe integer >= ${minimum}`);
-    }
-    return value;
-}
-
-export function dataObject(value: unknown, fields: readonly string[], label: string): Record<string, unknown> {
-    if (value === null || typeof value !== 'object' || Array.isArray(value)
-        || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) {
-        throw new SimulationInputError('invalid-input', `${label} must be a plain data object`);
-    }
-    const keys = Reflect.ownKeys(value);
-    if (keys.length !== fields.length || !fields.every(field => {
-        const descriptor = Object.getOwnPropertyDescriptor(value, field);
-        return descriptor && 'value' in descriptor;
-    })) {
-        throw new SimulationInputError('invalid-input', `${label} must contain exactly ${fields.join(', ')}`);
-    }
-    return value as Record<string, unknown>;
-}
-
-export function dataArray(value: unknown, label: string, maximum = Number.MAX_SAFE_INTEGER): unknown[] {
-    if (!Array.isArray(value) || value.length > maximum || Reflect.ownKeys(value).length !== value.length + 1) {
-        throw new SimulationInputError('invalid-input', `${label} must be a bounded dense array`);
-    }
-    for (let index = 0; index < value.length; index++) {
-        const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
-        if (!descriptor || !('value' in descriptor)) {
-            throw new SimulationInputError('invalid-input', `${label} must contain data properties only`);
-        }
-    }
-    return value;
-}
 
 function opponent(value: unknown): OpponentDefinition {
     const data = dataObject(value, [
         'pokemonId', 'health', 'autoAttackDamage', 'moneyReward', 'experienceReward',
         'dungeonTokenReward', 'captureProbability', 'captureDurationMs',
     ], 'opponent');
-    if (typeof data.pokemonId !== 'number' || !Number.isFinite(data.pokemonId)
-        || data.pokemonId <= 0 || data.pokemonId > Number.MAX_SAFE_INTEGER) {
-        throw new SimulationInputError('invalid-input', 'pokemonId must be a positive finite catalog ID');
-    }
     if (typeof data.captureProbability !== 'number' || !Number.isFinite(data.captureProbability)
         || data.captureProbability < 0 || data.captureProbability > 1) {
         throw new SimulationInputError('invalid-input', 'captureProbability must be between 0 and 1');
     }
     return Object.freeze({
-        pokemonId: data.pokemonId,
+        pokemonId: catalogId(data.pokemonId),
         health: safeInteger(data.health, 'health', 1),
         autoAttackDamage: safeInteger(data.autoAttackDamage, 'autoAttackDamage'),
         moneyReward: safeInteger(data.moneyReward, 'moneyReward'),
@@ -70,8 +34,11 @@ export function validateLocation(value: unknown): RouteReference {
     return Object.freeze({ region: safeInteger(data.region, 'region'), route: safeInteger(data.route, 'route', 1) });
 }
 
-function route(value: unknown): CombatRoute {
-    const data = dataObject(value, ['location', 'opponents', 'unlocked'], 'route');
+function route(value: unknown, weighted: true): WeightedCombatRoute;
+function route(value: unknown, weighted: false): UniformCombatRoute;
+function route(value: unknown, weighted: boolean): UniformCombatRoute | WeightedCombatRoute {
+    const fields = ['location', 'opponents', 'unlocked'];
+    const data = dataObject(value, weighted ? [...fields, 'encounters'] : fields, 'route');
     if (!Array.isArray(data.opponents) || data.opponents.length === 0 || typeof data.unlocked !== 'boolean') {
         throw new SimulationInputError('invalid-input', 'Expected a nonempty opponent list and boolean unlocked');
     }
@@ -79,7 +46,13 @@ function route(value: unknown): CombatRoute {
     if (new Set(opponents.map(entry => entry.pokemonId)).size !== opponents.length) {
         throw new SimulationInputError('invalid-input', 'Opponent catalog IDs must be unique within a route');
     }
+    const encounters = weighted ? validateEncounterTable(data.encounters, new Set(opponents.map(entry => entry.pokemonId))) : undefined;
+    if (encounters && opponents.some(entry => !encounters.some(encounter => encounter.pokemonId === entry.pokemonId))) {
+        throw new SimulationInputError('invalid-input', 'Every weighted route opponent must appear in its encounter table');
+    }
+    const selection = encounters ? { encounters } : {};
     return Object.freeze({
+        ...selection,
         location: validateLocation(data.location),
         opponents: Object.freeze(opponents),
         unlocked: data.unlocked,
@@ -87,11 +60,22 @@ function route(value: unknown): CombatRoute {
 }
 
 export function validateScenario(value: unknown): CombatScenario {
-    const data = dataObject(value, ['initialLocation', 'routes', 'clickAttackDamage', 'clickAttacksAllowed', 'initialPokeballs'], 'scenario');
+    // Inspect a data descriptor without invoking untrusted getters.
+    const version = value && typeof value === 'object' ? Object.getOwnPropertyDescriptor(value, 'formatVersion') : undefined;
+    const weighted = version !== undefined;
+    const fields = ['initialLocation', 'routes', 'clickAttackDamage', 'clickAttacksAllowed', 'initialPokeballs'];
+    const data = dataObject(value, weighted ? [...fields, 'formatVersion'] : fields, 'scenario');
+    if (weighted && data.formatVersion !== 2) {
+        throw new SimulationInputError('invalid-input', 'Unsupported combat scenario formatVersion');
+    }
     if (!Array.isArray(data.routes) || data.routes.length === 0 || typeof data.clickAttacksAllowed !== 'boolean') {
         throw new SimulationInputError('invalid-input', 'Expected a nonempty route list and boolean clickAttacksAllowed');
     }
-    const routes = Array.from(dataArray(data.routes, 'routes'), route);
+    const input = dataArray(data.routes, 'routes');
+    const selection = weighted
+        ? { formatVersion: 2 as const, routes: Object.freeze(Array.from(input, entry => route(entry, true))) }
+        : { routes: Object.freeze(Array.from(input, entry => route(entry, false))) };
+    const { routes } = selection;
     if (new Set(routes.map(entry => routeKey(entry.location))).size !== routes.length) {
         throw new SimulationInputError('invalid-input', 'Route locations must be unique');
     }
@@ -101,7 +85,7 @@ export function validateScenario(value: unknown): CombatScenario {
     }
     return Object.freeze({
         initialLocation,
-        routes: Object.freeze(routes),
+        ...selection,
         clickAttackDamage: safeInteger(data.clickAttackDamage, 'clickAttackDamage'),
         clickAttacksAllowed: data.clickAttacksAllowed,
         initialPokeballs: safeInteger(data.initialPokeballs, 'initialPokeballs'),
