@@ -1,32 +1,32 @@
 {
-  "version": "5165faf479692df9675c029cd8dd8d4d4524a7329149fc03ab97b54085a6a5b2",
+  "version": "1df3bbfc465ac26418786f33bab91b25ffaff64b433c13b4cfd31d0c7e461447",
   "files": {
     "combat": {
-      "path": "configuration/5165faf479692df9675c029cd8dd8d4d4524a7329149fc03ab97b54085a6a5b2/combat.json",
+      "path": "configuration/1df3bbfc465ac26418786f33bab91b25ffaff64b433c13b4cfd31d0c7e461447/combat.json",
       "sha256": "58b0dcf173f18343b9f673a6829804dc7af9600df2d71b4bbfdf98dd25d179fe"
     },
     "simulation": {
-      "path": "configuration/5165faf479692df9675c029cd8dd8d4d4524a7329149fc03ab97b54085a6a5b2/simulation.json",
+      "path": "configuration/1df3bbfc465ac26418786f33bab91b25ffaff64b433c13b4cfd31d0c7e461447/simulation.json",
       "sha256": "be1048393c473f8c6b67e17cc26b8cc32a6612dae670f4ccc12b386bd8817147"
     },
     "lab": {
-      "path": "configuration/5165faf479692df9675c029cd8dd8d4d4524a7329149fc03ab97b54085a6a5b2/lab.json",
-      "sha256": "d97898c4eb25f79f373e9f6e6e4b4888d82f27df059533959a9376b0c7a5d4a6"
+      "path": "configuration/1df3bbfc465ac26418786f33bab91b25ffaff64b433c13b4cfd31d0c7e461447/lab.json",
+      "sha256": "0e0a986b6bbecb81f57bd13a7c3735c10dcab0bd7f6c30cf6a1dea19201cd43d"
     },
     "route-health": {
-      "path": "configuration/5165faf479692df9675c029cd8dd8d4d4524a7329149fc03ab97b54085a6a5b2/route-health.json",
+      "path": "configuration/1df3bbfc465ac26418786f33bab91b25ffaff64b433c13b4cfd31d0c7e461447/route-health.json",
       "sha256": "f6ac4c36d14d2061b6257ee0ad450708b4f6c8c187120531fb89727195d27c5a"
     },
     "encounter-rules": {
-      "path": "configuration/5165faf479692df9675c029cd8dd8d4d4524a7329149fc03ab97b54085a6a5b2/encounter-rules.json",
+      "path": "configuration/1df3bbfc465ac26418786f33bab91b25ffaff64b433c13b4cfd31d0c7e461447/encounter-rules.json",
       "sha256": "c05ee3477a79195c24f09e739faf2e44efd49267fd9d577392fd8fe12a3a0e9e"
     },
     "experience": {
-      "path": "configuration/5165faf479692df9675c029cd8dd8d4d4524a7329149fc03ab97b54085a6a5b2/experience.json",
+      "path": "configuration/1df3bbfc465ac26418786f33bab91b25ffaff64b433c13b4cfd31d0c7e461447/experience.json",
       "sha256": "b02346e55852970df5583aad0edc541435f28b96d0915680003f4286ab38593a"
     },
     "level-curves": {
-      "path": "configuration/5165faf479692df9675c029cd8dd8d4d4524a7329149fc03ab97b54085a6a5b2/level-curves.json",
+      "path": "configuration/1df3bbfc465ac26418786f33bab91b25ffaff64b433c13b4cfd31d0c7e461447/level-curves.json",
       "sha256": "b664741e5bc0559750b14c04d7c42374801e4aeeb8368f20fab62a5399ef8f07"
     }
   }

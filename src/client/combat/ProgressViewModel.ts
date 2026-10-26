@@ -1,7 +1,7 @@
 import { CombatFrame, ProgressLimits, PROGRESS_TOTAL_FIELDS, ProgressTotalField, parseCombatFrame, parseProgressLimits } from '../../contracts/combat-progress';
 import { CombatSnapshotReceiver } from '../../contracts/combat-streams';
 
-export const PROGRESS_LABEL_FIELDS = ['title', ...PROGRESS_TOTAL_FIELDS, 'captured', 'routes', 'pokemonId', 'count', 'region', 'route', 'captures', 'waiting', 'emptyCaptures', 'emptyRoutes'] as const;
+export const PROGRESS_LABEL_FIELDS = ['title', ...PROGRESS_TOTAL_FIELDS, 'captured', 'routes', 'pokemonId', 'count', 'region', 'route', 'captures', 'waiting', 'emptyCaptures', 'emptyRoutes', 'party', 'level', 'grants', 'shadowExperience', 'emptyParty', 'partyDisabled'] as const;
 export type ProgressLabels = Readonly<Record<typeof PROGRESS_LABEL_FIELDS[number], string>>;
 export interface ProgressView {
     readonly totals: Readonly<Record<ProgressTotalField, string>>;
@@ -9,6 +9,9 @@ export interface ProgressView {
     readonly routes: readonly Readonly<{ region: string; route: string; defeats: string; captures: string }>[];
     readonly capturedNotice: string;
     readonly routesNotice: string;
+    readonly party: readonly Readonly<{ pokemonId: string; experience: string; level: string }>[];
+    readonly partyTotals: Readonly<{ grants: string; shadowExperience: string }>;
+    readonly partyNotice: string;
 }
 export function parseProgressLabels(value: unknown): ProgressLabels {
     if (!value || typeof value !== 'object' || Array.isArray(value)
@@ -36,7 +39,8 @@ export class ProgressViewModel {
         this.limits = parseProgressLimits(limits);
         this.receiver = new CombatSnapshotReceiver(sessionId);
         this.view = Object.freeze({ totals: Object.freeze(Object.fromEntries(PROGRESS_TOTAL_FIELDS.map(key => [key, this.labels.waiting]))) as ProgressView['totals'],
-            captured: Object.freeze([]), routes: Object.freeze([]), capturedNotice: this.labels.waiting, routesNotice: this.labels.waiting });
+            captured: Object.freeze([]), routes: Object.freeze([]), capturedNotice: this.labels.waiting, routesNotice: this.labels.waiting,
+            party: Object.freeze([]), partyTotals: Object.freeze({ grants: this.labels.waiting, shadowExperience: this.labels.waiting }), partyNotice: this.labels.waiting });
     }
     get current(): ProgressView {
         return this.view;
@@ -53,6 +57,12 @@ export class ProgressViewModel {
             routes: Object.freeze(progress.routes.map(entry => Object.freeze({ region: String(entry.location.region), route: String(entry.location.route), defeats: String(entry.defeats), captures: String(entry.captures) }))),
             capturedNotice: progress.captured.length ? '' : this.labels.emptyCaptures,
             routesNotice: progress.routes.length ? '' : this.labels.emptyRoutes,
+            party: Object.freeze((frame.party?.members ?? []).map(member => Object.freeze({
+                pokemonId: String(member.pokemonId), experience: String(member.experience), level: String(member.level),
+            }))),
+            partyTotals: Object.freeze({ grants: frame.party ? String(frame.party.grants) : this.labels.partyDisabled,
+                shadowExperience: frame.party ? String(frame.party.shadowExperience) : this.labels.partyDisabled }),
+            partyNotice: frame.party ? frame.party.members.length ? '' : this.labels.emptyParty : this.labels.partyDisabled,
         });
         return Object.freeze({ frame, view: this.view });
     }

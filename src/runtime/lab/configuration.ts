@@ -15,7 +15,7 @@ const COLOR_FIELDS = ['background', 'surface', 'text', 'muted', 'accent', 'outli
 const SIZE_FIELDS = ['gapRem', 'paddingRem', 'radiusRem', 'panelMinRem', 'maxWidthRem', 'fontSizeRem', 'lineHeight'] as const;
 export type LabTheme = Readonly<Record<typeof COLOR_FIELDS[number], string> & Record<typeof SIZE_FIELDS[number], number>>;
 export interface LabConfiguration {
-    readonly schemaVersion: 3;
+    readonly schemaVersion: 4;
     readonly startupTimeoutMs: number;
     readonly requestTimeoutMs: number;
     readonly maxCheckpointBytes: number;
@@ -36,7 +36,7 @@ export function parseLabConfiguration(value: unknown): LabConfiguration {
         'schemaVersion', 'startupTimeoutMs', 'requestTimeoutMs', 'maxCheckpointBytes', 'saveSlot', 'seed',
         'checkpointFilename', 'initialRenderer', 'scenario', 'combatLabels', 'progressLabels', 'text', 'theme',
     ], 'lab configuration');
-    if (data.schemaVersion !== 3 || !['dom', 'knockout'].includes(data.initialRenderer as string)
+    if (data.schemaVersion !== 4 || !['dom', 'knockout'].includes(data.initialRenderer as string)
         || typeof data.saveSlot !== 'string' || !/^[A-Za-z0-9_-]{1,64}$/.test(data.saveSlot)) {
         throw new Error('Unsupported lab version, renderer or save slot');
     }
@@ -68,7 +68,7 @@ export function parseLabConfiguration(value: unknown): LabConfiguration {
             throw new Error(`Lab layout ${key} must be finite and positive`);
         }
     }
-    return Object.freeze({ schemaVersion: 3, startupTimeoutMs, requestTimeoutMs,
+    return Object.freeze({ schemaVersion: 4, startupTimeoutMs, requestTimeoutMs,
         maxCheckpointBytes: safeInteger(data.maxCheckpointBytes, 'maxCheckpointBytes', 1), saveSlot: data.saveSlot, checkpointFilename: data.checkpointFilename,
         seed: validateRandomState(data.seed), initialRenderer: data.initialRenderer as RendererKind,
         scenario: validateScenario(data.scenario), combatLabels: new CombatViewModel('lab-label-validation', data.combatLabels).labels,

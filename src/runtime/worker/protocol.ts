@@ -1,6 +1,6 @@
-import { CombatProgress, ProgressLimits, parseCombatProgress } from '../../contracts/combat-progress';
+import { CombatFrame, ProgressLimits, parseCombatProgress, parsePartyProgress } from '../../contracts/combat-progress';
 import { HostCheckpoint, parseHostCheckpoint } from '../persistence/HostCheckpoint';
-import { COMBAT_PROTOCOL_VERSION, CombatCommand, CombatSnapshot, parseCombatCommand, parseCombatEvent, parseCombatSnapshot, validateSessionId } from '../../contracts/combat-protocol';
+import { COMBAT_PROTOCOL_VERSION, CombatCommand, parseCombatCommand, parseCombatEvent, parseCombatSnapshot, validateSessionId } from '../../contracts/combat-protocol';
 import type { Configuration } from '../../contracts/configuration-types';
 import { validateConfiguration } from '../../contracts/configuration';
 import type { AdvanceResult } from '../../simulation/combat/RouteCombatSimulation';
@@ -8,7 +8,7 @@ import { validateScenario, validateRandomState, safeInteger } from '../../simula
 import type { CombatScenario, CommandOutcome } from '../../simulation/combat/model';
 
 // Transport version is independent of the combat and configuration versions.
-export const WORKER_PROTOCOL_VERSION = 3;
+export const WORKER_PROTOCOL_VERSION = 4;
 export type CombatInput = Readonly<{ type: 'ClickAttack' }> | Readonly<{ type: 'ChangeRoute'; destination: { region: number; route: number } }>;
 export interface WorkerSession {
     readonly configuration: Configuration;
@@ -35,7 +35,7 @@ export interface WorkerCursors {
 }
 
 export type WorkerResult =
-    | { readonly type: 'ready'; readonly snapshot: CombatSnapshot; readonly progress: CombatProgress; readonly cursors: WorkerCursors }
+    | (CombatFrame & { readonly type: 'ready'; readonly cursors: WorkerCursors })
     | { readonly type: 'checkpoint'; readonly checkpoint: HostCheckpoint }
     | { readonly type: 'accepted'; readonly command: CombatCommand }
     | { readonly type: 'done' }
@@ -135,7 +135,7 @@ function parseResult(value: unknown, sessionId: string, limits: ProgressLimits):
     const type = kind(value);
     switch (type) {
         case 'ready': {
-            const data = object(value, ['type', 'snapshot', 'progress', 'cursors']);
+            const data = object(value, ['type', 'snapshot', 'progress', 'cursors', ...(limits.maxParty === undefined ? [] : ['party'])]);
             const snapshot = parseCombatSnapshot(data.snapshot);
             if (snapshot.sessionId !== sessionId) {
                 throw new Error('Worker initialization belongs to a foreign session');
@@ -147,7 +147,7 @@ function parseResult(value: unknown, sessionId: string, limits: ProgressLimits):
             if (cursors.outcomeSequence > cursors.commandSequence || (!cursors.commandSequence && cursors.commandAtMs)) {
                 throw new Error('Invalid restored worker cursors');
             }
-            return Object.freeze({ type, snapshot, progress: parseCombatProgress(data.progress, limits), cursors });
+            return Object.freeze({ type, snapshot, ...frameProgress(data, limits), cursors });
         }
         case 'checkpoint': return Object.freeze({ type, checkpoint: parseHostCheckpoint(object(value, ['type', 'checkpoint']).checkpoint) });
         case 'accepted': {
@@ -182,7 +182,7 @@ export function parseResponse(value: unknown, sessionId: string, configuration: 
         case 'reply': return Object.freeze({ ...common, type, requestId: safeInteger(data.requestId, 'requestId', 1), result: parseResult(data.result, sessionId, progressLimits) });
         case 'fault': return Object.freeze({ ...common, type, message: message(data.message) });
         case 'output': {
-            const batch = object(data.batch, ['snapshot', 'progress', 'events', 'commands', 'remainingMs']);
+            const batch = object(data.batch, ['snapshot', 'progress', 'events', 'commands', 'remainingMs', ...(progressLimits.maxParty === undefined ? [] : ['party'])]);
             const limits = configuration.simulation;
             // Each transition can emit at most two combat events; check lengths before mapping.
             const eventLimit = limits.maxStepsPerAdvance * limits.maxTransitionsPerStep * 2;
@@ -197,8 +197,13 @@ export function parseResponse(value: unknown, sessionId: string, configuration: 
                 || commands.some(command => command.atMs > snapshot.atMs)) {
                 throw new Error('Worker batch contains foreign or future records');
             }
-            return Object.freeze({ ...common, type, batch: Object.freeze({ snapshot, progress: parseCombatProgress(batch.progress, progressLimits), events, commands, remainingMs: safeInteger(batch.remainingMs, 'remainingMs') }) });
+            return Object.freeze({ ...common, type, batch: Object.freeze({ snapshot, ...frameProgress(batch, progressLimits), events, commands, remainingMs: safeInteger(batch.remainingMs, 'remainingMs') }) });
         }
         default: throw new Error('Unsupported worker response');
     }
+}
+
+function frameProgress(data: Record<string, unknown>, limits: ProgressLimits): Pick<CombatFrame, 'progress' | 'party'> {
+    const progress = parseCombatProgress(data.progress, limits);
+    return { progress, ...(limits.maxParty === undefined ? {} : { party: parsePartyProgress(data.party, limits.maxParty, progress.defeats) }) };
 }

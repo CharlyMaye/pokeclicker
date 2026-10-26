@@ -79,9 +79,11 @@ export function mountCheckpointFiles(container: HTMLElement, controller: CombatL
                 const renderer = new CombatSessionRenderer(details, checkpoint.combat.snapshot.sessionId, 'dom', lab.combatLabels, lab.progressLabels, {
                     maxCaptured: new Set(lab.scenario.routes.flatMap(route => route.opponents.map(opponent => opponent.pokemonId))).size,
                     maxRoutes: lab.scenario.routes.length,
+                    ...(lab.scenario.formatVersion === 4 ? { maxParty: lab.scenario.party.members.length } : {}),
                 });
                 try {
-                    renderer.render({ snapshot: checkpoint.combat.snapshot, progress: { ...checkpoint.combat.progress, pokeballs: checkpoint.combat.pokeballs } });
+                    renderer.render({ snapshot: checkpoint.combat.snapshot, progress: { ...checkpoint.combat.progress, pokeballs: checkpoint.combat.pokeballs },
+                        ...(checkpoint.combat.formatVersion === 3 ? { party: checkpoint.combat.party } : {}) });
                 } catch (error) {
                     renderer.dispose(); throw error;
                 }
