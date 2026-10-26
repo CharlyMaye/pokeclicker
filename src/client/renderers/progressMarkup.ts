@@ -13,7 +13,7 @@ export function createProgressMarkup(document: Document, labels: ProgressLabels)
         const value = element(document, 'dd', labels.waiting); value.dataset.progressField = key;
         totals.appendChild(value); fields.set(key, value);
     }
-    function table(name: 'captured' | 'routes', columns: readonly (keyof ProgressLabels)[]) {
+    function table(name: 'captured' | 'routes' | 'party', columns: readonly (keyof ProgressLabels)[]) {
         const table = element(document, 'table'); table.dataset.progressTable = name;
         table.appendChild(element(document, 'caption', labels[name]));
         const header = element(document, 'thead'), row = element(document, 'tr');
@@ -26,6 +26,15 @@ export function createProgressMarkup(document: Document, labels: ProgressLabels)
         const notice = element(document, 'p', labels.waiting); notice.dataset.progressNotice = name; root.appendChild(notice);
         return { table, body, notice };
     }
-    return { root, fields, captured: table('captured', ['pokemonId', 'count']), routes: table('routes', ['region', 'route', 'defeats', 'captures']) };
+    const captured = table('captured', ['pokemonId', 'count']), routes = table('routes', ['region', 'route', 'defeats', 'captures']);
+    const party = table('party', ['pokemonId', 'level', 'experience']);
+    const partyTotals = element(document, 'dl'); root.appendChild(partyTotals);
+    const partyFields = new Map<'grants' | 'shadowExperience', HTMLElement>();
+    for (const key of ['grants', 'shadowExperience'] as const) {
+        partyTotals.appendChild(element(document, 'dt', labels[key]));
+        const value = element(document, 'dd', labels.waiting); value.dataset.partyField = key;
+        partyTotals.appendChild(value); partyFields.set(key, value);
+    }
+    return { root, fields, captured, routes, party, partyFields };
 }
 export type ProgressMarkup = ReturnType<typeof createProgressMarkup>;

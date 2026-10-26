@@ -10,10 +10,18 @@ export interface CombatProgress extends Readonly<Record<ProgressTotalField, numb
 export interface CombatFrame {
     readonly snapshot: CombatSnapshot;
     readonly progress: CombatProgress;
+    readonly party?: PartyProgress;
+}
+export interface PartyProgress {
+    readonly grants: number;
+    readonly shadowExperience: number;
+    readonly members: readonly Readonly<{ pokemonId: number; experience: number; level: number }>[];
 }
 export interface ProgressLimits {
     readonly maxCaptured: number;
     readonly maxRoutes: number;
+    /** Presence enables party frames, including an explicitly empty roster. */
+    readonly maxParty?: number;
 }
 function object(value: unknown, fields: readonly string[]): Record<string, unknown> {
     if (!value || typeof value !== 'object' || Array.isArray(value)
@@ -51,8 +59,10 @@ function sum(values: readonly number[]): number {
     return values.reduce((total, value) => integer(total + value, 'progress sum'), 0);
 }
 export function parseProgressLimits(value: unknown): ProgressLimits {
-    const data = object(value, ['maxCaptured', 'maxRoutes']);
-    return Object.freeze({ maxCaptured: integer(data.maxCaptured, 'maxCaptured'), maxRoutes: integer(data.maxRoutes, 'maxRoutes') });
+    const party = !!value && Object.prototype.hasOwnProperty.call(value, 'maxParty');
+    const data = object(value, ['maxCaptured', 'maxRoutes', ...(party ? ['maxParty'] : [])]);
+    return Object.freeze({ maxCaptured: integer(data.maxCaptured, 'maxCaptured'), maxRoutes: integer(data.maxRoutes, 'maxRoutes'),
+        ...(party ? { maxParty: integer(data.maxParty, 'maxParty') } : {}) });
 }
 export function parseCombatProgress(value: unknown, suppliedLimits: ProgressLimits): CombatProgress {
     const limits = parseProgressLimits(suppliedLimits);
@@ -83,6 +93,36 @@ export function parseCombatProgress(value: unknown, suppliedLimits: ProgressLimi
     return Object.freeze({ ...totals, captured: Object.freeze(captured), routes: Object.freeze(routes) });
 }
 export function parseCombatFrame(value: unknown, limits: ProgressLimits): CombatFrame {
-    const data = object(value, ['snapshot', 'progress']);
-    return Object.freeze({ snapshot: parseCombatSnapshot(data.snapshot), progress: parseCombatProgress(data.progress, limits) });
+    const bounds = parseProgressLimits(limits);
+    const data = object(value, ['snapshot', 'progress', ...(bounds.maxParty === undefined ? [] : ['party'])]);
+    const progress = parseCombatProgress(data.progress, bounds);
+    return Object.freeze({ snapshot: parseCombatSnapshot(data.snapshot), progress,
+        ...(bounds.maxParty === undefined ? {} : { party: parsePartyProgress(data.party, bounds.maxParty, progress.defeats) }) });
+}
+
+/** Presentation validation; curve and cap consistency require the initialized session. */
+export function parsePartyProgress(value: unknown, maxMembers: number, defeats: number): PartyProgress {
+    integer(maxMembers, 'maxParty'); integer(defeats, 'defeats');
+    const data = object(value, ['grants', 'shadowExperience', 'members']);
+    const grants = integer(data.grants, 'party grants');
+    const nonnegative = (value: unknown): number => {
+        if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > Number.MAX_SAFE_INTEGER) {
+            throw new Error('Party experience must be finite, nonnegative and within the supported range');
+        }
+        return value;
+    };
+    const shadowExperience = nonnegative(data.shadowExperience);
+    const members = array(data.members, maxMembers).map(value => {
+        const member = object(value, ['pokemonId', 'experience', 'level']);
+        const pokemonId = nonnegative(member.pokemonId), experience = nonnegative(member.experience);
+        if (pokemonId === 0 || experience === Number.MAX_SAFE_INTEGER) {
+            throw new Error('Invalid party identifier or experience sentinel');
+        }
+        return Object.freeze({ pokemonId, experience, level: integer(member.level, 'party level', 1) });
+    });
+    if (grants !== defeats || (!grants && shadowExperience !== 0)
+        || new Set(members.map(member => member.pokemonId)).size !== members.length) {
+        throw new Error('Party grants, identities or shadow experience are inconsistent');
+    }
+    return Object.freeze({ grants, shadowExperience, members: Object.freeze(members) });
 }

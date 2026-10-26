@@ -1,3 +1,5 @@
+import { verifyPartyFrame } from './party';
+import { createPartyState, projectPartyState } from '../../simulation/experience/partyExperience';
 import { verifySessionProgress, verifyProgressAdvance } from './progress';
 import { CombatFrame, CombatProgress, ProgressLimits, parseCombatProgress } from '../../contracts/combat-progress';
 import { HostCheckpoint, parseHostCheckpoint } from '../persistence/HostCheckpoint';
@@ -54,7 +56,8 @@ export class WorkerCombatHost {
         this.sessionId = validateSessionId(options.sessionId);
         this.session = parseSession(options.session);
         this.progressLimits = Object.freeze({ maxCaptured: new Set(this.session.scenario.routes.flatMap(route => route.opponents.map(opponent => opponent.pokemonId))).size,
-            maxRoutes: this.session.scenario.routes.length });
+            maxRoutes: this.session.scenario.routes.length,
+            ...(this.session.scenario.formatVersion === 4 ? { maxParty: this.session.scenario.party.members.length } : {}) });
         if (!Number.isSafeInteger(options.requestTimeoutMs) || options.requestTimeoutMs <= 0) {
             throw new Error('Worker requestTimeoutMs must be a positive safe integer');
         }
@@ -232,6 +235,12 @@ export class WorkerCombatHost {
                 if (!sameData(result.progress, parseCombatProgress(expectedProgress, this.progressLimits))) {
                     throw new Error('Worker did not initialize the requested progress');
                 }
+                verifyPartyFrame(result, this.session.scenario);
+                const expectedParty = saved?.formatVersion === 3 ? saved.party : this.session.scenario.formatVersion === 4
+                    ? projectPartyState(createPartyState(this.session.scenario.party)) : undefined;
+                if (!sameData(result.party ?? null, expectedParty ?? null)) {
+                    throw new Error('Worker did not initialize the requested party');
+                }
                 verifySessionProgress(result.progress, result.snapshot, this.session.scenario, result.cursors.eventSequence, result.cursors.outcomeSequence);
                 const expectedCursors = saved ? { commandSequence: saved.commandSequence, commandAtMs: saved.commandAtMs,
                     eventSequence: saved.eventSequence, outcomeSequence: saved.commandSequence - saved.commands.length }
@@ -245,6 +254,7 @@ export class WorkerCombatHost {
             if (result.type === 'checkpoint') {
                 const saved = parseHostCheckpoint(result.checkpoint, this.session.configuration, this.session.scenario).combat;
                 if (!sameData(parseCombatProgress({ ...saved.progress, pokeballs: saved.pokeballs }, this.progressLimits), this.progress) || !sameData(saved.snapshot, this.snapshot) || saved.commandSequence !== this.acceptedSequence
+                    || !sameData(saved.formatVersion === 3 ? saved.party : null, this.frame?.party ?? null)
                     || saved.commandAtMs !== this.acceptedAtMs || saved.eventSequence !== this.eventSequence
                     || saved.commandSequence - saved.commands.length !== this.outcomeSequence) {
                     throw new Error('Worker checkpoint disagrees with delivered state');
@@ -266,7 +276,7 @@ export class WorkerCombatHost {
             pending.reject(new Error(result.message)); return;
         }
         if (result.type === 'ready') {
-            this.frame = Object.freeze({ snapshot: result.snapshot, progress: result.progress });
+            this.frame = Object.freeze({ snapshot: result.snapshot, progress: result.progress, ...(result.party ? { party: result.party } : {}) });
             this.acceptedSequence = result.cursors.commandSequence;
             this.acceptedAtMs = result.cursors.commandAtMs;
             this.eventSequence = result.cursors.eventSequence;
@@ -314,9 +324,10 @@ export class WorkerCombatHost {
         }
         verifySessionProgress(batch.progress, batch.snapshot, this.session.scenario, eventSequence, outcomeSequence);
         verifyProgressAdvance(previousProgress, batch);
+        verifyPartyFrame(batch, this.session.scenario, this.frame ?? undefined);
         this.eventSequence = eventSequence; this.eventAtMs = eventAtMs;
         this.outcomeSequence = outcomeSequence; this.outcomeAtMs = outcomeAtMs;
-        this.frame = Object.freeze({ snapshot: batch.snapshot, progress: batch.progress }); this.output = batch;
+        this.frame = Object.freeze({ snapshot: batch.snapshot, progress: batch.progress, ...(batch.party ? { party: batch.party } : {}) }); this.output = batch;
         const notification: unknown = this.options.onOutputAvailable?.();
         if (notification && typeof (notification as PromiseLike<unknown>).then === 'function') {
             Promise.resolve(notification).catch(() => {});

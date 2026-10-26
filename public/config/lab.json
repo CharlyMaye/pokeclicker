@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "startupTimeoutMs": 10000,
   "requestTimeoutMs": 5000,
   "maxCheckpointBytes": 1048576,
@@ -201,7 +201,13 @@
     "captures": "Captures",
     "waiting": "Waiting for progress",
     "emptyCaptures": "No Pokémon captured yet.",
-    "emptyRoutes": "No route defeats yet."
+    "emptyRoutes": "No route defeats yet.",
+    "party": "Party progression",
+    "level": "Level",
+    "grants": "Experience grants",
+    "shadowExperience": "Calculated shadow experience",
+    "emptyParty": "This session has an empty party.",
+    "partyDisabled": "Party progression is not enabled for this session."
   },
   "checkpointFilename": "pokeclicker-ecs-checkpoint.json"
 }

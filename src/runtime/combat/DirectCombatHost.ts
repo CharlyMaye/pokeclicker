@@ -52,7 +52,7 @@ export class DirectCombatHost {
         const saved = options.checkpoint === undefined ? undefined : parseHostCheckpoint(options.checkpoint, this.configuration, options.scenario);
         this.engine = new RouteCombatSimulation(options.sessionId, this.configuration, options.scenario, options.seed, options.random, saved?.combat);
         this.elapsedMs = saved?.activeTimeMs ?? 0;
-        this.frame = Object.freeze({ snapshot: this.engine.snapshot, progress: this.engine.progress });
+        this.frame = Object.freeze({ snapshot: this.engine.snapshot, progress: this.engine.progress, ...(this.engine.partyExperience ? { party: this.engine.partyExperience } : {}) });
     }
 
     get cursors() {
@@ -284,7 +284,7 @@ export class DirectCombatHost {
             if (target - this.snapshot.atMs >= this.configuration.simulation.stepMs) {
                 const output = this.engine.advanceTo(target);
                 this.outputs.push(output);
-                this.frame = Object.freeze({ snapshot: output.snapshot, progress: output.progress });
+                this.frame = Object.freeze({ snapshot: output.snapshot, progress: output.progress, ...(output.party ? { party: output.party } : {}) });
                 published = true;
             }
         } catch (error) {

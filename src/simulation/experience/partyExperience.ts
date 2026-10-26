@@ -1,3 +1,4 @@
+import type { PartyProgress as PartySnapshot } from '../../contracts/combat-progress';
 import { catalogId, dataArray, dataObject, safeInteger } from '../combat/input';
 import { SimulationInputError } from '../combat/model';
 import { finiteRuleNumber } from '../content/encounterPolicy';
@@ -10,9 +11,7 @@ export interface PartyMemberDefinition {
 }
 export interface PartyDefinition { readonly levelCurves: LevelCurves; readonly members: readonly PartyMemberDefinition[] }
 export interface PartyMemberState { readonly pokemonId: number; readonly experience: number; readonly level: number }
-export interface PartySnapshot {
-    readonly grants: number; readonly shadowExperience: number; readonly members: readonly PartyMemberState[];
-}
+export type { PartyProgress as PartySnapshot } from '../../contracts/combat-progress';
 export interface PartyState {
     readonly grants: number; readonly shadowExperience: number; readonly members: ReadonlyMap<number, PartyMemberState>;
 }
