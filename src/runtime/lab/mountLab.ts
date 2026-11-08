@@ -171,6 +171,7 @@ export function mountCombatLab(container: HTMLElement, base: URL, configuration:
             })),
             createRenderer: (kind, sessionId) => new CombatSessionRenderer(view, sessionId, kind, lab.combatLabels, lab.progressLabels, {
                 maxCaptured: new Set(lab.scenario.routes.flatMap(route => route.opponents.map(opponent => opponent.pokemonId))).size, maxRoutes: lab.scenario.routes.length,
+                ...(lab.scenario.formatVersion === 4 ? { maxParty: lab.scenario.party.members.length } : {}),
             }),
         });
         files = mountCheckpointFiles(root, controller, lab, { changed: update, execute });

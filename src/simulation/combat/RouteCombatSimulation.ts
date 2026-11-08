@@ -1,5 +1,5 @@
 import { createPartyState, projectPartyState } from '../experience/partyExperience';
-import { CombatProgress, parseCombatProgress } from '../../contracts/combat-progress';
+import { CombatFrame, CombatProgress, parseCombatProgress } from '../../contracts/combat-progress';
 import {
     COMBAT_PROTOCOL_VERSION, CombatEvent, CombatSnapshot, parseCombatCommand, parseCombatSnapshot, validateSessionId,
 } from '../../contracts/combat-protocol';
@@ -12,9 +12,7 @@ import { findRoute } from './routes';
 import { CombatCheckpoint, parseCombatCheckpoint, restoreCombatWorld } from './checkpoint';
 import { safeInteger, validateRandomState, validateScenario, xorshift32 } from './validation';
 
-export interface AdvanceResult {
-    readonly snapshot: CombatSnapshot;
-    readonly progress: CombatProgress;
+export interface AdvanceResult extends CombatFrame {
     readonly events: readonly CombatEvent[];
     readonly commands: readonly CommandOutcome[];
     readonly remainingMs: number;
@@ -208,6 +206,7 @@ export class RouteCombatSimulation {
             const result = Object.freeze({
                 snapshot: project(next),
                 progress: projectProgress(next),
+                ...(next.party ? { party: projectPartyState(next.party) } : {}),
                 events: Object.freeze(output.events),
                 commands: Object.freeze(output.commands),
                 remainingMs: targetMs - next.atMs,

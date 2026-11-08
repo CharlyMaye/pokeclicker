@@ -158,3 +158,27 @@ for (const [label, definition] of [['uniform', scenario], ['weighted', weightedS
     });
 
 }
+
+for (const renders of [0, 1, 7]) {
+    test(`party frames match direct combat with ${renders} renders per wake and renderer replacement`, { timeout: 15000 }, async t => {
+        const { host, tick } = await launch(t, false, undefined, 'party-live', partyScenario);
+        const direct = new RouteCombatSimulation('party-live', session.configuration, partyScenario, session.seed);
+        let callback, shown, disposals = 0;
+        const scheduler = { request(fn) { callback = fn; return () => { callback = null; }; } };
+        const source = { get latest() { return host.latestFrame; } };
+        const renderer = () => ({ render(value) { shown = value; }, dispose() { disposals++; } });
+        let display = new PresentationLoop(source, scheduler, renderer()); display.start();
+        assert.deepEqual(host.latestFrame.party, direct.partyExperience);
+        for (let time = 100; time <= 6000; time += 100) {
+            const expected = direct.advanceTo(time); await tick(time);
+            assert.deepEqual(host.pendingOutput, expected);
+            assert.deepEqual(host.latestFrame.party, direct.partyExperience);
+            for (let count = 0; count < renders; count++) callback();
+            if (renders) assert.equal(shown.party, host.latestFrame.party);
+            if (time === 3000) { display.dispose(); display = new PresentationLoop(source, scheduler, renderer()); display.start(); }
+            await host.acknowledge(host.latest.sequence);
+        }
+        assert.ok(host.latestFrame.party.grants > 0); assert.equal(host.fault, null);
+        display.dispose(); assert.equal(disposals, 2);
+    });
+}

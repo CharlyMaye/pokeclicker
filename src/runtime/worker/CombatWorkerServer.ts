@@ -111,7 +111,7 @@ export class CombatWorkerServer {
                 onOutputAvailable: () => this.pump(),
             });
             this.commandSequence = this.host.cursors.commandSequence;
-            return { type: 'ready', snapshot: this.host.latest, progress: this.host.progress, cursors: this.host.cursors };
+            return { type: 'ready', ...this.host.latestFrame, cursors: this.host.cursors };
         }
         const host = this.host;
         if (!host) {

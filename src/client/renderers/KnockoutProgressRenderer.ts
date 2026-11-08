@@ -15,9 +15,12 @@ export class KnockoutProgressRenderer {
             for (const [key, field] of this.markup.fields) {
                 this.bind(field, 'text', () => this.view().totals[key]);
             }
-            for (const name of ['captured', 'routes'] as const) {
+            for (const [key, field] of this.markup.partyFields) {
+                this.bind(field, 'text', () => this.view().partyTotals[key]);
+            }
+            for (const name of ['captured', 'routes', 'party'] as const) {
                 const row = element(container.ownerDocument, 'tr');
-                const columns = name === 'captured' ? ['pokemonId', 'count'] : ['region', 'route', 'defeats', 'captures'];
+                const columns = name === 'captured' ? ['pokemonId', 'count'] : name === 'routes' ? ['region', 'route', 'defeats', 'captures'] : ['pokemonId', 'level', 'experience'];
                 for (const column of columns) {
                     const cell = element(container.ownerDocument, 'td');
                     // Fixed binding identifiers come from this adapter, never from JSON labels or game data.
@@ -25,7 +28,7 @@ export class KnockoutProgressRenderer {
                 }
                 this.markup[name].body.appendChild(row);
                 this.bind(this.markup[name].body, 'foreach', () => this.view()[name]);
-                this.bind(this.markup[name].notice, 'text', () => name === 'captured' ? this.view().capturedNotice : this.view().routesNotice);
+                this.bind(this.markup[name].notice, 'text', () => name === 'captured' ? this.view().capturedNotice : name === 'routes' ? this.view().routesNotice : this.view().partyNotice);
             }
             container.appendChild(this.markup.root);
         } catch (error) {
